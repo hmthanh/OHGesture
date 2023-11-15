@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import sys
-[sys.path.append(i) for i in ['.', '..', '../../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
+[sys.path.append(i) for i in ['.', '..', '../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
 
 from anim import bvh, quat, txform
 from utils_zeggs import write_bvh
@@ -279,13 +279,13 @@ if __name__ == '__main__':
     cd mymdm/process
     python process_zeggs_bvh.py
     '''
-    config_file = "../../ubisoft-laforge-ZeroEGGS-main/configs/data_pipeline_conf_v1.json"
+    config_file = "../ubisoft-laforge-ZeroEGGS-main/configs/data_pipeline_conf_v1.json"
     with open(config_file, "r") as f:
         conf = json.load(f)
 
     conf = DictConfig(conf)
 
-    # animation_file = "../../ubisoft-laforge-ZeroEGGS-main/Data/original/001_Neutral_0.bvh"
+    # animation_file = "../ubisoft-laforge-ZeroEGGS-main/Data/original/001_Neutral_0.bvh"
     animation_file = r"E:\下载\bvh2fpx"
 
     # (
@@ -405,6 +405,6 @@ if __name__ == '__main__':
     #
 
     #
-    # # processed_data_path = "../../ubisoft-laforge-ZeroEGGS-main/Data/processed_v1/processed_data.npz"
+    # # processed_data_path = "../ubisoft-laforge-ZeroEGGS-main/Data/processed_v1/processed_data.npz"
     # # processed_data = np.load(processed_data_path)
     # pdb.set_trace()

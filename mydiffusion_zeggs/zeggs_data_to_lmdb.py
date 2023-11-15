@@ -169,7 +169,7 @@ if __name__ == '__main__':
     '''
     python zeggs_data_to_lmdb.py
     '''
-    source_path = '../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/trimmed/'
-    target = '../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/'
+    source_path = '../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/trimmed/'
+    target = '../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/'
     make_zeggs_dataset(source_path, target)
     make_lmdb_gesture_dataset(target)

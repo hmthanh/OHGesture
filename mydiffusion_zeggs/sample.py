@@ -1,5 +1,5 @@
 import sys
-[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../../ubisoft-laforge-ZeroEGGS-main', '../../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
+[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS-main', '../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
 from model.mdm import MDM
 from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 import subprocess
@@ -184,8 +184,8 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
+    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
+    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -317,8 +317,8 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
+    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
+    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -332,10 +332,13 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
     prefix += '_%s' % (n_frames)
     prefix += '_' + str(style)
     prefix += '_' + str(seed)
+    saved_path = os.path.join(save_dir, prefix + '.bvh')
     if minibatch:
         pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames - n_seed, smoothing=SG_filter)
     else:
         pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames, smoothing=SG_filter)
+
+    print("pose saved in : ", saved_path)
 
 
 def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm_path=None, max_len=0):
@@ -375,7 +378,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
 
     sample_fn = diffusion.p_sample_loop     # predict x_start
 
-    print("audiowavlm_pathaudiowavlm_pathaudiowavlm_pathaudiowavlm_path", audiowavlm_path)
+    # print("audiowavlm_pathaudiowavlm_pathaudiowavlm_pathaudiowavlm_path", audiowavlm_path)
     style = style2onehot[audiowavlm_path.split('/')[-1].split('_')[1]]
     # style = [0, 0, 1, 0, 0, 0]
     # style = style2onehot['Neutral']
@@ -391,7 +394,7 @@ if __name__ == '__main__':
     '''
 
     # audio_path = '../../../My/Test_audio/Example1/ZeroEGGS_cut.wav'
-    # mfcc_path = "../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/valid/mfcc/015_Happy_4_mirror_x_1_0.npz"       # 010_Sad_4_x_1_0.npz
+    # mfcc_path = "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/valid/mfcc/015_Happy_4_mirror_x_1_0.npz"       # 010_Sad_4_x_1_0.npz
     # audiowavlm_path = "./015_Happy_4_x_1_0.wav"
     # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./016_Neutral_4_x_1_0.wav" --max_len 2400
     # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./015_Happy_4_x_1_0.wav" --max_len 320
