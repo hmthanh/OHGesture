@@ -1,4 +1,5 @@
 import sys
+
 [sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS-main', '../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
 from model.mdm import MDM
 from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
@@ -14,16 +15,16 @@ import torch
 import torch.nn.functional as F
 from easydict import EasyDict
 import math
-from process_zeggs_bvh import pose2bvh, quat      # '../process'
+from process_zeggs_bvh import pose2bvh, quat  # '../process'
 import argparse
 
 style2onehot = {
-'Happy':[1, 0, 0, 0, 0, 0],
-'Sad':[0, 1, 0, 0, 0, 0],
-'Neutral':[0, 0, 1, 0, 0, 0],
-'Old':[0, 0, 0, 1, 0, 0],
-'Angry':[0, 0, 0, 0, 1, 0],
-'Relaxed':[0, 0, 0, 0, 0, 1],
+    'Happy': [1, 0, 0, 0, 0, 0],
+    'Sad': [0, 1, 0, 0, 0, 0],
+    'Neutral': [0, 0, 1, 0, 0, 0],
+    'Old': [0, 0, 0, 1, 0, 0],
+    'Angry': [0, 0, 0, 0, 1, 0],
+    'Relaxed': [0, 0, 0, 0, 0, 1],
 }
 
 
@@ -32,7 +33,7 @@ def wavlm_init(device=torch.device('cuda:2')):
     [sys.path.append(i) for i in ['./WavLM']]
     from WavLM import WavLM, WavLMConfig
     wavlm_model_path = './WavLM/WavLM-Large.pt'
-    checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'))     # load the pre-trained checkpoints
+    checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'))  # load the pre-trained checkpoints
     cfg = WavLMConfig(checkpoint['cfg'])
     model = WavLM(cfg)
     model = model.to(device)
@@ -50,14 +51,13 @@ def wav2wavlm(model, wav_input_16khz, device=torch.device('cuda:2')):
 
 def create_model_and_diffusion(args):
     model = MDM(modeltype='', njoints=1141, nfeats=1, translation=True, pose_rep='rot6d', glob=True,
-                glob_rot=True, cond_mode = 'cross_local_attention3_style1', clip_version = 'ViT-B/32', action_emb = 'tensor', audio_feat=args.audio_feat,
-                arch='trans_enc', latent_dim=256, n_seed=8)        # trans_enc, trans_dec, gru, mytrans_enc
+                glob_rot=True, cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor', audio_feat=args.audio_feat,
+                arch='trans_enc', latent_dim=256, n_seed=8)  # trans_enc, trans_dec, gru, mytrans_enc
     diffusion = create_gaussian_diffusion()
     return model, diffusion
 
 
 def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG_filter=False, minibatch=False, skip_timesteps=0, n_seed=8, style=None, seed=123456, smooth_foot=False):
-
     torch.manual_seed(seed)
 
     if n_frames == 0:
@@ -82,7 +82,7 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
     # model_kwargs_['y']['audio'] = tmp_mfcc.permute(1, 0, 2)
 
     if minibatch:
-        audio_reshape = torch.from_numpy(mfcc).to(torch.float32).reshape(num_subdivision, stride_poses, -1).to(mydevice).permute(1, 0, 2)       # mfcc[:, :-2]
+        audio_reshape = torch.from_numpy(mfcc).to(torch.float32).reshape(num_subdivision, stride_poses, -1).to(mydevice).permute(1, 0, 2)  # mfcc[:, :-2]
         shape_ = (1, model.njoints, model.nfeats, args.n_poses)
         out_list = []
         for i in range(0, num_subdivision):
@@ -90,7 +90,7 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
             model_kwargs_['y']['audio'] = audio_reshape[:, i:i + 1, :]
             if i == 0:
                 if n_seed != 0:
-                    pad_zeros = torch.zeros([n_seed, 1, 13]).to(mydevice)        # mfcc dims are 13
+                    pad_zeros = torch.zeros([n_seed, 1, 13]).to(mydevice)  # mfcc dims are 13
                     model_kwargs_['y']['audio'] = torch.cat((pad_zeros, model_kwargs_['y']['audio']), 0)
                     model_kwargs_['y']['seed'] = torch.zeros([1, 1141, 1, n_seed]).to(mydevice)
             else:
@@ -113,21 +113,21 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
             )
             # smoothing motion transition
             if len(out_list) > 0 and n_seed != 0:
-                last_poses = out_list[-1][..., -n_seed:]        # # (1, model.njoints, 1, n_seed)
+                last_poses = out_list[-1][..., -n_seed:]  # # (1, model.njoints, 1, n_seed)
                 out_list[-1] = out_list[-1][..., :-n_seed]  # delete last 4 frames
                 if smoothing:
                     # Extract predictions
-                    last_poses_root_pos = last_poses[:, 0:3]        # (1, 3, 1, 8)
+                    last_poses_root_pos = last_poses[:, 0:3]  # (1, 3, 1, 8)
                     # last_poses_root_rot = last_poses[:, 3:7]
                     # last_poses_root_vel = last_poses[:, 7:10]
                     # last_poses_root_vrt = last_poses[:, 10:13]
-                    next_poses_root_pos = sample[:, 0:3]        # (1, 3, 1, 88)
+                    next_poses_root_pos = sample[:, 0:3]  # (1, 3, 1, 88)
                     # next_poses_root_rot = sample[:, 3:7]
                     # next_poses_root_vel = sample[:, 7:10]
                     # next_poses_root_vrt = sample[:, 10:13]
-                    root_pos = last_poses_root_pos[..., 0]      # (1, 3, 1)
+                    root_pos = last_poses_root_pos[..., 0]  # (1, 3, 1)
                     predict_pos = next_poses_root_pos[..., 0]
-                    delta_pos = (predict_pos - root_pos).unsqueeze(-1)      # # (1, 3, 1, 1)
+                    delta_pos = (predict_pos - root_pos).unsqueeze(-1)  # # (1, 3, 1, 1)
                     sample[:, 0:3] = sample[:, 0:3] - delta_pos
 
                 if smooth_foot:
@@ -208,7 +208,6 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
 
 
 def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=False, SG_filter=False, minibatch=False, skip_timesteps=0, n_seed=8, style=None, seed=123456):
-
     torch.manual_seed(seed)
 
     if n_frames == 0:
@@ -230,7 +229,7 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
     model_kwargs_['y']['mask_local'] = torch.ones(1, args.n_poses).bool().to(mydevice)
 
     if minibatch:
-        audio_reshape = torch.from_numpy(audio).to(torch.float32).reshape(num_subdivision, int(stride_poses * 16000 / 20)).to(mydevice).transpose(0, 1)       # mfcc[:, :-2]
+        audio_reshape = torch.from_numpy(audio).to(torch.float32).reshape(num_subdivision, int(stride_poses * 16000 / 20)).to(mydevice).transpose(0, 1)  # mfcc[:, :-2]
         shape_ = (1, model.njoints, model.nfeats, args.n_poses)
         out_list = []
         for i in range(0, num_subdivision):
@@ -239,7 +238,7 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
 
             if i == 0:
                 if n_seed != 0:
-                    pad_zeros = torch.zeros([int(n_seed * 16000 / 20), 1]).to(mydevice)        # wavlm dims are 1024
+                    pad_zeros = torch.zeros([int(n_seed * 16000 / 20), 1]).to(mydevice)  # wavlm dims are 1024
                     model_kwargs_['y']['audio'] = torch.cat((pad_zeros, model_kwargs_['y']['audio']), 0)
                     model_kwargs_['y']['seed'] = torch.zeros([1, 1141, 1, n_seed]).to(mydevice)
             else:
@@ -264,21 +263,21 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
             )
             # smoothing motion transition
             if len(out_list) > 0 and n_seed != 0:
-                last_poses = out_list[-1][..., -n_seed:]        # # (1, model.njoints, 1, n_seed)
+                last_poses = out_list[-1][..., -n_seed:]  # # (1, model.njoints, 1, n_seed)
                 out_list[-1] = out_list[-1][..., :-n_seed]  # delete last 4 frames
                 if smoothing:
                     # Extract predictions
-                    last_poses_root_pos = last_poses[:, 0:3]        # (1, 3, 1, 8)
+                    last_poses_root_pos = last_poses[:, 0:3]  # (1, 3, 1, 8)
                     # last_poses_root_rot = last_poses[:, 3:7]
                     # last_poses_root_vel = last_poses[:, 7:10]
                     # last_poses_root_vrt = last_poses[:, 10:13]
-                    next_poses_root_pos = sample[:, 0:3]        # (1, 3, 1, 88)
+                    next_poses_root_pos = sample[:, 0:3]  # (1, 3, 1, 88)
                     # next_poses_root_rot = sample[:, 3:7]
                     # next_poses_root_vel = sample[:, 7:10]
                     # next_poses_root_vrt = sample[:, 10:13]
-                    root_pos = last_poses_root_pos[..., 0]      # (1, 3, 1)
+                    root_pos = last_poses_root_pos[..., 0]  # (1, 3, 1)
                     predict_pos = next_poses_root_pos[..., 0]
-                    delta_pos = (predict_pos - root_pos).unsqueeze(-1)      # # (1, 3, 1, 1)
+                    delta_pos = (predict_pos - root_pos).unsqueeze(-1)  # # (1, 3, 1, 1)
                     sample[:, 0:3] = sample[:, 0:3] - delta_pos
 
                 for j in range(len(last_poses)):
@@ -376,7 +375,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
     model.to(mydevice)
     model.eval()
 
-    sample_fn = diffusion.p_sample_loop     # predict x_start
+    sample_fn = diffusion.p_sample_loop  # predict x_start
 
     # print("audiowavlm_pathaudiowavlm_pathaudiowavlm_pathaudiowavlm_path", audiowavlm_path)
     style = style2onehot[audiowavlm_path.split('/')[-1].split('_')[1]]
@@ -385,19 +384,15 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
     print(style)
 
     wavlm_model = wavlm_init(mydevice)
-    inference(args, wavlm_model, mfcc, sample_fn, model, n_frames=max_len, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, style=style, seed=123456)      # style2onehot['Happy']s
+    inference(args, wavlm_model, mfcc, sample_fn, model, n_frames=max_len, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, style=style, seed=123456)  # style2onehot['Happy']s
 
 
 if __name__ == '__main__':
-    '''
-    cd /ceph/hdd/yangsc21/Python/DSG/
-    '''
-
     # audio_path = '../../../My/Test_audio/Example1/ZeroEGGS_cut.wav'
     # mfcc_path = "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/valid/mfcc/015_Happy_4_mirror_x_1_0.npz"       # 010_Sad_4_x_1_0.npz
-    # audiowavlm_path = "./015_Happy_4_x_1_0.wav"
+    # audiowavlm_path = "./021_Happy_4_x_1_0.wav"
     # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./016_Neutral_4_x_1_0.wav" --max_len 2400
-    # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./015_Happy_4_x_1_0.wav" --max_len 320
+    # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./021_Happy_4_x_1_0.wav" --max_len 320
     # prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     # save_dir = 'sample_' + prefix
     save_dir = 'sample_dir'
@@ -406,8 +401,8 @@ if __name__ == '__main__':
     parser.add_argument('--config', default='./configs/DiffuseStyleGesture.yml')
     parser.add_argument('--gpu', type=str, default='2')
     parser.add_argument('--no_cuda', type=list, default=['2'])
-    parser.add_argument('--model_path', type=str, default='./model000450000.pt')
-    parser.add_argument('--audiowavlm_path', type=str, default='./015_Happy_4_x_1_0.wav')
+    parser.add_argument('--model_path', type=str, default='./model.pt')
+    parser.add_argument('--audiowavlm_path', type=str, default='./021_Happy_4_x_1_0.wav')
     parser.add_argument('--max_len', type=int, default=0)
     args = parser.parse_args()
     with open(args.config) as f:
@@ -423,4 +418,3 @@ if __name__ == '__main__':
     batch_size = 1
 
     main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audiowavlm_path=config.audiowavlm_path, max_len=config.max_len)
-
