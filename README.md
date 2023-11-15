@@ -18,7 +18,7 @@ python ./sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 
 ## Visualization
 
 ```shell
-cd ./ubisoft-laforge-ZeroEGGS-main/ZEGGS/bvh2fbx
+cd ./ubisoft-laforge-ZeroEGGS/ZEGGS/bvh2fbx
 ./bvh2fbx.bat
 ```
 
