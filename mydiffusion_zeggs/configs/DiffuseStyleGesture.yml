@@ -1,11 +1,11 @@
 
 # ZEGGS
-train_data_path: "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/train/train_lmdb/train_lmdb/"     # speaker_1_state_0
-val_data_path: "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/valid/valid_lmdb/valid_lmdb/"
+train_data_path: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/train/train_lmdb/train_lmdb/"     # speaker_1_state_0
+val_data_path: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/valid/valid_lmdb/valid_lmdb/"
 
 # 60 fps + normalized
-data_mean: "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz"
-data_std: "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz"
+data_mean: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/mean.npz"
+data_std: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/std.npz"
 
 n_poses: 88     # 88 -> 20*60
 n_codes: 30

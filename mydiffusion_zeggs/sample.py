@@ -1,6 +1,6 @@
 import sys
 
-[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS-main', '../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
+[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
 from model.mdm import MDM
 from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 import subprocess
@@ -15,7 +15,7 @@ import torch
 import torch.nn.functional as F
 from easydict import EasyDict
 import math
-from process_zeggs_bvh import pose2bvh, quat  # '../process'
+from ZEGGS.process_zeggs_bvh import pose2bvh, quat  # '../process'
 import argparse
 
 style2onehot = {
@@ -184,8 +184,8 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
+    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/mean.npz")['mean'].squeeze()
+    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/std.npz")['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -316,8 +316,8 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
+    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/mean.npz")['mean'].squeeze()
+    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/std.npz")['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -389,7 +389,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
 
 if __name__ == '__main__':
     # audio_path = '../../../My/Test_audio/Example1/ZeroEGGS_cut.wav'
-    # mfcc_path = "../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/valid/mfcc/015_Happy_4_mirror_x_1_0.npz"       # 010_Sad_4_x_1_0.npz
+    # mfcc_path = "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/valid/mfcc/015_Happy_4_mirror_x_1_0.npz"       # 010_Sad_4_x_1_0.npz
     # audiowavlm_path = "./021_Happy_4_x_1_0.wav"
     # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./016_Neutral_4_x_1_0.wav" --max_len 2400
     # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./021_Happy_4_x_1_0.wav" --max_len 320

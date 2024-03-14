@@ -7,8 +7,8 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import sys
 [sys.path.append(i) for i in ['.', '..', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
 
-from anim import bvh, quat, txform
-from utils_zeggs import write_bvh
+from ZEGGS.anim import bvh, quat, txform
+from ZEGGS.utils_zeggs import write_bvh
 import torch
 from scipy.signal import savgol_filter
 

@@ -4,8 +4,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
-from local_attention import LocalAttention
+from model.local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
+from model.local_attention.local_attention import LocalAttention
 
 class MDM(nn.Module):
     def __init__(self, modeltype, njoints, nfeats,

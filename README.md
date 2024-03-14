@@ -11,7 +11,7 @@ pip install -r requirements.txt
 
 ```shell
 cd ./mydiffusion_zeggs
-python ./sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model.pt' --audiowavlm_path "./021_Happy_4_x_1_0.wav"
+python ./sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path "./model.pt" --audiowavlm_path "./021_Happy_4_x_1_0.wav"
 ```
 ## Training
 

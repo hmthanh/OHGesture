@@ -64,7 +64,6 @@ if True:
         logging.info("======")
 
         results_path = "./Rendered"
-        # template_file = "./LaForgeFemale.fbx"
         template_file = "./LaForgeMale.fbx"
 
         # Characterizing all bvh files
