@@ -9,7 +9,6 @@ from easydict import EasyDict
 from configs.parse_args import parse_args
 import os
 import sys
-
 [sys.path.append(i) for i in ['.', '..', '../model', '../train']]
 from utils.model_util import create_gaussian_diffusion
 from training_loop import TrainLoop

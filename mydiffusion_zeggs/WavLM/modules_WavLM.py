@@ -133,7 +133,7 @@ def gelu_accurate(x):
     if not hasattr(gelu_accurate, "_a"):
         gelu_accurate._a = math.sqrt(2 / math.pi)
     return (
-        0.5 * x * (1 + torch.tanh(gelu_accurate._a * (x + 0.044715 * torch.pow(x, 3))))
+            0.5 * x * (1 + torch.tanh(gelu_accurate._a * (x + 0.044715 * torch.pow(x, 3))))
     )
 
 
@@ -233,7 +233,7 @@ def quant_noise(module, p, block_size):
     # 2D matrix
     if not is_conv:
         assert (
-            module.weight.size(1) % block_size == 0
+                module.weight.size(1) % block_size == 0
         ), "Input features must be a multiple of block sizes"
 
     # 4D matrix
@@ -241,7 +241,7 @@ def quant_noise(module, p, block_size):
         # 1x1 convolutions
         if module.kernel_size == (1, 1):
             assert (
-                module.in_channels % block_size == 0
+                    module.in_channels % block_size == 0
             ), "Input channels must be a multiple of block sizes"
         # regular convolutions
         else:
@@ -614,20 +614,20 @@ class MultiheadAttention(nn.Module):
 
         q = (
             q.contiguous()
-                .view(tgt_len, bsz * self.num_heads, self.q_head_dim)
-                .transpose(0, 1)
+            .view(tgt_len, bsz * self.num_heads, self.q_head_dim)
+            .transpose(0, 1)
         )
         if k is not None:
             k = (
                 k.contiguous()
-                    .view(-1, bsz * self.num_heads, self.k_head_dim)
-                    .transpose(0, 1)
+                .view(-1, bsz * self.num_heads, self.k_head_dim)
+                .transpose(0, 1)
             )
         if v is not None:
             v = (
                 v.contiguous()
-                    .view(-1, bsz * self.num_heads, self.head_dim)
-                    .transpose(0, 1)
+                .view(-1, bsz * self.num_heads, self.head_dim)
+                .transpose(0, 1)
             )
 
         if saved_state is not None:
