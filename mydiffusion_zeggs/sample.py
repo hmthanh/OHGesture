@@ -298,7 +298,7 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
             out_dir_vec = np.vstack(out_list)
             sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
     else:
-        model_kwargs_['y']['audio'] = torch.from_numpy(mfcc).to(torch.float32).unsqueeze(0).to(mydevice).permute(1, 0, 2)
+        model_kwargs_['y']['audio'] = torch.from_numpy(audio).to(torch.float32).unsqueeze(0).to(mydevice).permute(1, 0, 2)
         shape_ = (batch_size, model.njoints, model.nfeats, n_frames)
         model_kwargs_['y']['seed'] = torch.zeros([1, 1141, 1, n_seed]).to(mydevice)
         sample = sample_fn(
@@ -412,8 +412,8 @@ if __name__ == '__main__':
     pprint(config)
 
     config = EasyDict(config)
-    mydevice = torch.device('cuda:' + config.gpu)
-    torch.cuda.set_device(int(config.gpu))
+    mydevice = torch.device(config.gpu)
+    # torch.cuda.set_device(int(config.gpu))
 
     batch_size = 1
 
