@@ -1,3 +1,6 @@
+import sys
+[sys.path.append(i) for i in ['.', '..', '../model', '../train']]
+
 import pdb
 import logging
 from torch.utils.data import DataLoader
@@ -8,11 +11,12 @@ from pprint import pprint
 from easydict import EasyDict
 from configs.parse_args import parse_args
 import os
-import sys
-[sys.path.append(i) for i in ['.', '..', '../model', '../train']]
+
 from utils.model_util import create_gaussian_diffusion
 from training_loop import TrainLoop
 from model.mdm import MDM
+
+
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -56,8 +60,8 @@ if __name__ == '__main__':
     '''
 
     args = parse_args()
-    mydevice = torch.device('cuda:' + args.gpu)
-    torch.cuda.set_device(int(args.gpu))
+    mydevice = torch.device(args.gpu)
+    # torch.cuda.set_device(int(args.gpu))
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
