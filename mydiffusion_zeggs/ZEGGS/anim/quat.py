@@ -50,9 +50,14 @@ def abs(x):
     return np.where((np.sum(x * np.array([1, 0, 0, 0], dtype=np.float32), axis=-1) > 0.0)[..., np.newaxis], x, -x)
 
 
+# def log(x, eps=1e-5):
+#     length = np.sqrt(np.sum(np.square(x[..., 1:]), axis=-1))[..., np.newaxis]
+#     halfangle = np.where(length < eps, np.ones_like(length), np.arctan2(length, x[..., 0:1]) / length)
+#     return halfangle * x[..., 1:]
 def log(x, eps=1e-5):
     length = np.sqrt(np.sum(np.square(x[..., 1:]), axis=-1))[..., np.newaxis]
-    halfangle = np.where(length < eps, np.ones_like(length), np.arctan2(length, x[..., 0:1]) / length)
+    angle = np.arctan2(length, x[..., 0:1])
+    halfangle = np.divide(angle, length, out=np.ones_like(length), where=length >= eps)
     return halfangle * x[..., 1:]
 
 

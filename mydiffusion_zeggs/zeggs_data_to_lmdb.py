@@ -4,25 +4,27 @@ import pdb
 import subprocess
 import numpy as np
 import lmdb
-import pyarrow
+import pyarrow as pa
 from mfcc import MFCC
 import soundfile as sf
 import sys
-[sys.path.append(i) for i in ['.', '..', '../process']]
+import pandas as pd
+
 from process_zeggs_bvh import preprocess_animation, pose2bvh
 
+[sys.path.append(i) for i in ['.', '..', '../process']]
 
 style2onehot = {
-'Happy':[1, 0, 0, 0, 0, 0],
-'Sad':[0, 1, 0, 0, 0, 0],
-'Neutral':[0, 0, 1, 0, 0, 0],
-'Old':[0, 0, 0, 1, 0, 0],
-'Angry':[0, 0, 0, 0, 1, 0],
-'Relaxed':[0, 0, 0, 0, 0, 1],
+    'Happy': [1, 0, 0, 0, 0, 0],
+    'Sad': [0, 1, 0, 0, 0, 0],
+    'Neutral': [0, 0, 1, 0, 0, 0],
+    'Old': [0, 0, 0, 1, 0, 0],
+    'Angry': [0, 0, 0, 0, 1, 0],
+    'Relaxed': [0, 0, 0, 0, 0, 1],
 }
 
-def make_lmdb_gesture_dataset(root_path):
 
+def make_lmdb_gesture_dataset(root_path):
     def make_lmdb_gesture_subdataset(base_path, lmdb_subname):
         gesture_path = os.path.join(base_path, 'gesture_npz')
         audio_path = os.path.join(base_path, 'normalize_audio_npz')
@@ -31,11 +33,14 @@ def make_lmdb_gesture_dataset(root_path):
         if not os.path.exists(out_path):
             os.makedirs(out_path)
 
-        map_size = 1024 * 200  # in MB
-        map_size <<= 20  # in B
-        dataset_idx = 0
+        # map_size = 1024 * 200  # in MB
+        # map_size <<= 20  # in B
+        # dataset_idx = 0
+        # print("map_size", map_size)
+        map_size = 10 * 1024 * 1024 * 1024
 
-        db = [lmdb.open(os.path.join(out_path, lmdb_subname), map_size=map_size)]
+        lmdb_path = os.path.normpath(os.path.join(os.path.normpath(out_path), lmdb_subname))
+        db = [lmdb.open(lmdb_path, map_size=map_size)]
 
         # delete existing files
         for i in range(1):
@@ -60,8 +65,6 @@ def make_lmdb_gesture_dataset(root_path):
             mfcc_raw = np.load(os.path.join(mfcc_path, name + '.npz'))['mfcc']
 
             # process
-            clips = [{'vid': name, 'clips': []}]    # train and test
-
             data_mean = np.load(os.path.join(root_path, 'mean.npz'))['mean']
             data_std = np.load(os.path.join(root_path, 'std.npz'))['std']
             data_mean = np.array(data_mean).squeeze()
@@ -70,21 +73,33 @@ def make_lmdb_gesture_dataset(root_path):
             poses = (poses - data_mean) / std
 
             poses = np.asarray(poses)
-            clips[dataset_idx]['clips'].append(
-                {  # 'words': word_list,
-                    'poses': poses,
-                    'audio_raw': audio_raw,
-                    'mfcc_raw': mfcc_raw,      # for debug
-                    'style_raw': np.array(style)       # for debug
-                })
+            # clips = [{'vid': name, 'clips': []}]  # train and test
+            # clips[dataset_idx]['clips'].append(
+            #     {  # 'words': word_list,
+            #         'poses': poses,
+            #         'audio_raw': audio_raw,
+            #         'mfcc_raw': mfcc_raw,  # for debug
+            #         'style_raw': np.array(style)  # for debug
+            #     })
+            df = pd.DataFrame([{
+                'vid': name,
+                'clips': [{
+                    'poses': poses.tolist(),
+                    'audio_raw': audio_raw.tolist(),
+                    'mfcc_raw': mfcc_raw.tolist(),  # for debug
+                    'style_raw': np.array(style).tolist()  # for debug
+                }]
+            }])
 
             # write to db
             for i in range(1):
                 with db[i].begin(write=True) as txn:
-                    if len(clips[i]['clips']) > 0:
-                        k = '{:010}'.format(v_i).encode('ascii')
-                        v = pyarrow.serialize(clips[i]).to_buffer()
-                        txn.put(k, v)
+                    # if len(clips[i]['clips']) > 0:
+                    k = '{:010}'.format(v_i).encode('ascii')
+                    # v = pa.serialize_pandas(df)
+                    v = pa.ipc.serialize_pandas(df).to_pybytes()
+                    # v = pyarrow.serialize(clips[i]).to_buffer()
+                    txn.put(k, v)
 
             all_poses.append(poses)
             v_i += 1

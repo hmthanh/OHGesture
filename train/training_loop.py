@@ -13,8 +13,12 @@ from tqdm import tqdm
 from diffusion.resample import create_named_schedule_sampler
 
 import sys
-[sys.path.append(i) for i in ['./process', '../ubisoft-laforge-ZeroEGGS', './mydiffusion_zeggs']]
-from generate.generate import WavEncoder
+
+from mycustomgenerate import MyWavEncoder
+
+[sys.path.append(i) for i in ['../process', '../../ubisoft-laforge-ZeroEGGS-main', '../mydiffusion_zeggs']]
+# from generate.generate import WavEncoder
+# from generate.mycustomgenerate import WavEncoder
 from process_zeggs_bvh import pose2bvh
 
 # For ImageNet experiments, this was a good default value.
@@ -61,7 +65,7 @@ class TrainLoop:
 
         self.device = device
         if args.audio_feat == "wav encoder":
-            self.WavEncoder = WavEncoder().to(self.device)
+            self.WavEncoder = MyWavEncoder().to(self.device)
             self.opt = AdamW([
                 {'params': self.mp_trainer.master_params, 'lr':self.lr, 'weight_decay':self.weight_decay},
                 {'params': self.WavEncoder.parameters(), 'lr':self.lr}
@@ -202,8 +206,8 @@ class TrainLoop:
                 #     )       # (1, 135, 1, 240)
                 #
                 #     sampled_seq = sample.squeeze(0).permute(1, 2, 0)
-                #     data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS/Data/processed_v1/processed/mean.npz")['mean']
-                #     data_std_ = np.load("../ubisoft-laforge-ZeroEGGS/Data/processed_v1/processed/std.npz")['std']
+                #     data_mean_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/Data/processed_v1/processed/mean.npz")['mean']
+                #     data_std_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/Data/processed_v1/processed/std.npz")['std']
                 #
                 #     data_mean = np.array(data_mean_).squeeze()
                 #     data_std = np.array(data_std_).squeeze()

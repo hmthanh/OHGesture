@@ -1,22 +1,23 @@
 import sys
 
 [sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
-from model.mdm import MDM
-from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
-import subprocess
+
 import os
-from datetime import datetime
-from mfcc import MFCC
+import argparse
+import math
 import librosa
+import subprocess
 import numpy as np
+from easydict import EasyDict
+from datetime import datetime
 import yaml
 from pprint import pprint
 import torch
 import torch.nn.functional as F
-from easydict import EasyDict
-import math
+from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
+from mfcc import MFCC
 from ZEGGS.process_zeggs_bvh import pose2bvh, quat  # '../process'
-import argparse
+from model.mdm import MDM
 
 style2onehot = {
     'Happy': [1, 0, 0, 0, 0, 0],
@@ -192,7 +193,7 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
     std = np.clip(data_std, a_min=0.01, a_max=None)
     out_poses = np.multiply(sampled_seq[0], std) + data_mean
     print(out_poses.shape)
-    pipeline_path = '../../../My/process/resource/data_pipe_20_rotation.sav'
+    # pipeline_path = '../../../My/process/resource/data_pipe_20_rotation.sav'
     prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     if smoothing: prefix += '_smoothing'
     if smooth_foot: prefix += 'smoothfoot'
@@ -398,11 +399,10 @@ if __name__ == '__main__':
     save_dir = 'sample_dir'
 
     parser = argparse.ArgumentParser(description='DiffuseStyleGesture')
-    parser.add_argument('--config', default='./configs/DiffuseStyleGesture.yml')
-    parser.add_argument('--gpu', type=str, default='2')
-    parser.add_argument('--no_cuda', type=list, default=['2'])
-    parser.add_argument('--model_path', type=str, default='./model.pt')
-    parser.add_argument('--audiowavlm_path', type=str, default='./021_Happy_4_x_1_0.wav')
+    parser.add_argument('--config', default='configs/DiffuseStyleGesture.yml')
+    parser.add_argument('--gpu', type=str, default='cuda:0')
+    parser.add_argument('--model_path', type=str, default='model.pt')
+    parser.add_argument('--speech_path', type=str, default='021_Happy_4_x_1_0.wav')
     parser.add_argument('--max_len', type=int, default=0)
     args = parser.parse_args()
     with open(args.config) as f:
@@ -417,4 +417,4 @@ if __name__ == '__main__':
 
     batch_size = 1
 
-    main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audiowavlm_path=config.audiowavlm_path, max_len=config.max_len)
+    main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audiowavlm_path=config.speech_path, max_len=config.max_len)

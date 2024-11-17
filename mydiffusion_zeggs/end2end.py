@@ -35,7 +35,8 @@ def main(args, device):
                                    subdivision_stride=args.subdivision_stride,
                                    pose_resampling_fps=args.motion_resampling_framerate, model='WavLM', device=device)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
-                              shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
+                              shuffle=True, drop_last=True, num_workers=0, pin_memory=True)
+    # args.loader_workers
 
     val_dataset = TrinityDataset(args.val_data_path,
                                  n_poses=args.n_poses,
@@ -60,7 +61,7 @@ if __name__ == '__main__':
     '''
 
     args = parse_args()
-    mydevice = torch.device(args.gpu)
+    mydevice = torch.device("cuda:0")
     # torch.cuda.set_device(int(args.gpu))
 
     with open(args.config) as f:

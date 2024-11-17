@@ -52,7 +52,12 @@ def abs(x):
 
 def log(x, eps=1e-5):
     length = np.sqrt(np.sum(np.square(x[..., 1:]), axis=-1))[..., np.newaxis]
-    halfangle = np.where(length < eps, np.ones_like(length), np.arctan2(length, x[..., 0:1]) / length)
+    # halfangle = np.where(length < eps,
+    #                      np.ones_like(length),
+    #                      np.arctan2(length, x[..., 0:1]) / length)
+    halfangle = np.where(length < eps,
+                         np.ones_like(length),
+                         np.arctan2(length, x[..., 0:1]) / np.maximum(length, eps))
     return halfangle * x[..., 1:]
 
 
@@ -226,12 +231,3 @@ def fk_vel(lrot, lpos, lvrt, lvel, parents):
 
     return np.concatenate(gr, axis=-2), np.concatenate(gp, axis=-2), np.concatenate(gt, axis=-2), np.concatenate(gv,
                                                                                                                  axis=-2)
-    
-
-
-
-        
-
-
-
-

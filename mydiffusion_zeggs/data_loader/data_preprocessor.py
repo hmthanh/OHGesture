@@ -5,12 +5,12 @@ import lmdb
 import math
 import numpy as np
 import pyarrow
-
+import pandas as pd
 
 import torch
 import torch.nn.functional as F
 
-def wavlm_init(device=torch.device('cuda:1')):
+def wavlm_init(device=torch.device('cuda:0')):
     import sys
     [sys.path.append(i) for i in ['./WavLM']]
     from WavLM import WavLM, WavLMConfig
@@ -26,12 +26,15 @@ def wavlm_init(device=torch.device('cuda:1')):
     return model
 
 
-def wav2wavlm(model, wav_input_16khz, device=torch.device('cuda:1')):
+def wav2wavlm(model, wav_input_16khz, device=torch.device('cuda:0')):
     with torch.no_grad():
+        wav_input_16khz = np.copy(wav_input_16khz)
         wav_input_16khz = torch.from_numpy(wav_input_16khz).float()
         wav_input_16khz = wav_input_16khz.to(device).unsqueeze(0)
+
         rep = model.extract_features(wav_input_16khz)[0]
         rep = F.interpolate(rep.transpose(1, 2), size=88, align_corners=True, mode='linear').transpose(1, 2)
+
         return rep.squeeze().cpu().detach().data.cpu().numpy()
 
 
@@ -48,8 +51,9 @@ class DataPreprocessor:
         self.audio_sample_length = int(self.n_poses / self.skeleton_resampling_fps * 16000)
 
         # create db for samples
-        map_size = 1024 * 1024 * 20  # in TB
-        map_size <<= 20  # in B
+        # map_size = 1024 * 1024 * 20  # in TB
+        map_size = 50 * 1024 * 1024 * 1024  # in TB
+        # map_size <<= 20  # in B
         self.dst_lmdb_env = lmdb.open(out_lmdb_dir, map_size=map_size)
         self.n_out_samples = 0
 
@@ -62,9 +66,10 @@ class DataPreprocessor:
         # sampling and normalization
         cursor = src_txn.cursor()
         for key, value in cursor:
-            video = pyarrow.deserialize(value)
+            # video = pyarrow.deserialize(value)
+            video = pyarrow.ipc.deserialize_pandas(value)
             vid = video['vid']
-            clips = video['clips']
+            clips = video['clips'][0]
             for clip_idx, clip in enumerate(clips):
                 self._sample_from_clip(vid, clip, self.device)
 
@@ -78,6 +83,7 @@ class DataPreprocessor:
 
 
     def _sample_from_clip(self, vid, clip, device):
+
         clip_skeleton = clip['poses']
         clip_audio_raw = clip['audio_raw']
         clip_styles_raw = clip['style_raw']
@@ -141,12 +147,19 @@ class DataPreprocessor:
         if len(sample_skeletons_list) > 0:
             with self.dst_lmdb_env.begin(write=True) as txn:
                 for poses, codes, wavlm in zip(sample_skeletons_list, sample_codes_list, sample_wavlm_list):
-                    poses = np.asarray(poses)
+                    poses = np.vstack(poses).astype(np.float64)
+                    poses = np.asarray(poses, dtype=np.float64)
 
                     # save
                     k = '{:010}'.format(self.n_out_samples).encode('ascii')
                     v = [poses, codes, wavlm]
-                    v = pyarrow.serialize(v).to_buffer()
+                    df = pd.DataFrame([{
+                        "poses": poses.tolist(),
+                        "codes": codes.tolist(),
+                        "wavlm": wavlm.tolist()
+                    }])
+                    v = pyarrow.ipc.serialize_pandas(df).to_pybytes()
+                    # v = pyarrow.serialize(v).to_buffer()
                     txn.put(k, v)
                     self.n_out_samples += 1
 

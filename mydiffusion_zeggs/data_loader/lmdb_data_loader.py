@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 import pyarrow
 import sys
 import os
+import numpy as np
 [sys.path.append(i) for i in ['.', '..']]
 from data_loader.data_preprocessor import DataPreprocessor
 
@@ -26,12 +27,12 @@ class TrinityDataset(Dataset):
                 preloaded_dir = lmdb_dir + '_cache_WavLM'
         else:
             preloaded_dir = lmdb_dir + '_cache'
-        if not os.path.exists(preloaded_dir):
-            data_sampler = DataPreprocessor(lmdb_dir, preloaded_dir, n_poses,
-                                            subdivision_stride, pose_resampling_fps, device=device)
-            data_sampler.run()
-        else:
-            logging.info('Found pre-loaded samples from {}'.format(preloaded_dir))
+        # if not os.path.exists(preloaded_dir):
+        data_sampler = DataPreprocessor(lmdb_dir, preloaded_dir, n_poses,
+                                        subdivision_stride, pose_resampling_fps, device=device)
+        data_sampler.run()
+        # else:
+        #     logging.info('Found pre-loaded samples from {}'.format(preloaded_dir))
 
         # init lmdb
         # map_size = 1024 * 20  # in MB
@@ -48,9 +49,20 @@ class TrinityDataset(Dataset):
             key = '{:010}'.format(idx).encode('ascii')
             sample = txn.get(key)
 
-            sample = pyarrow.deserialize(sample)
+            # sample = pyarrow.deserialize(sample)
+            sample_value = pyarrow.ipc.deserialize_pandas(sample)
+            poses =  sample_value["poses"][0]
+            codes = sample_value["codes"][0]
+            wavlm = sample_value["wavlm"][0]
+
+            poses = np.vstack(poses).astype(np.float64)
+            pose_seq = np.asarray(poses, dtype=np.float64)
+
+            styles = np.asarray(codes, dtype=np.float32)
+            wavlm = np.vstack(wavlm).astype(np.float64)
+            wavlm = np.asarray(wavlm, dtype=np.float64)
             # pose_seq, audio, styles, mfcc, wavlm, aux_info = sample
-            pose_seq, styles, wavlm = sample
+            # pose_seq, styles, wavlm = sample
 
         # # normalize
         # std = np.clip(self.data_std, a_min=0.01, a_max=None)
