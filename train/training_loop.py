@@ -14,7 +14,7 @@ from diffusion.resample import create_named_schedule_sampler
 
 import sys
 
-from mycustomgenerate import MyWavEncoder
+# from mycustomgenerate import MyWavEncoder
 
 [sys.path.append(i) for i in ['../process', '../../ubisoft-laforge-ZeroEGGS-main', '../mydiffusion_zeggs']]
 # from generate.generate import WavEncoder

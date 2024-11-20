@@ -82,7 +82,8 @@ class TrinityDataset(Dataset):
 if __name__ == '__main__':
     '''
     cd main/mydiffusion_zeggs
-    python data_loader/lmdb_data_loader.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0
+    python data_loader/lmdb_data_loader.py --config=./configs/DiffuseStyleGesture.yml --gpu mps
+    python data_loader/lmdb_data_loader.py --config=./configs/DiffuseStyleGesture.yml --gpu cuda:0
     '''
 
     from configs.parse_args import parse_args
@@ -94,6 +95,8 @@ if __name__ == '__main__':
 
     args = parse_args()
 
+    device = torch.device(args.gpu)
+
     with open(args.config) as f:
         config = yaml.safe_load(f)
 
@@ -103,10 +106,12 @@ if __name__ == '__main__':
 
     args = EasyDict(config)
 
+
+
     train_dataset = TrinityDataset(args.train_data_path,
                                    n_poses=args.n_poses,
                                    subdivision_stride=args.subdivision_stride,
-                                   pose_resampling_fps=args.motion_resampling_framerate, model='WavLM', device=torch.device('cuda:0'))
+                                   pose_resampling_fps=args.motion_resampling_framerate, model='WavLM', device=device)
     val_dataset = TrinityDataset(args.val_data_path,
                                        n_poses=args.n_poses,
                                        subdivision_stride=args.subdivision_stride,

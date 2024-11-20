@@ -33,8 +33,11 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=
         scale = scale_betas * 1000 / num_diffusion_timesteps
         beta_start = scale * 0.0001
         beta_end = scale * 0.02
+        # return np.linspace(
+        #     beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
+        # )
         return np.linspace(
-            beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
+            beta_start, beta_end, num_diffusion_timesteps, dtype=np.float32
         )
     elif schedule_name == "cosine":
         return betas_for_alpha_bar(
@@ -159,7 +162,8 @@ class GaussianDiffusion:
             assert self.loss_type == LossType.MSE, 'Geometric losses are supported by MSE loss type only!'
 
         # Use float64 for accuracy.
-        betas = np.array(betas, dtype=np.float64)
+        # betas = np.array(betas, dtype=np.float64)
+        betas = np.array(betas, dtype=np.float32)
         self.betas = betas
         assert len(betas.shape) == 1, "betas must be 1-D"
         assert (betas > 0).all() and (betas <= 1).all()
