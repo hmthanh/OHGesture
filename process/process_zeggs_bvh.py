@@ -286,7 +286,7 @@ if __name__ == '__main__':
     conf = DictConfig(conf)
 
     # animation_file = "../ubisoft-laforge-ZeroEGGS/Data/original/001_Neutral_0.bvh"
-    animation_file = r"E:\下载\bvh2fpx"
+    animation_file = r"E:\bvh2fpx"
 
     # (
     #     root_pos,       # (8116, 3)

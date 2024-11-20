@@ -15,6 +15,9 @@ def eye_like(x):
 
 
 def mul(x, y):
+    """
+    Multiplies two quaternions using the given element-wise approach.
+    """
     x0, x1, x2, x3 = x[..., 0:1], x[..., 1:2], x[..., 2:3], x[..., 3:4]
     y0, y1, y2, y3 = y[..., 0:1], y[..., 1:2], y[..., 2:3], y[..., 3:4]
 
@@ -157,6 +160,9 @@ def to_xform(x):
 
 
 def from_euler(e, order='zyx'):
+    """
+        Constructs a quaternion from a rotation angle and an axis.
+    """
     axis = {'x': np.array([1, 0, 0], dtype=np.float32),
             'y': np.array([0, 1, 0], dtype=np.float32),
             'z': np.array([0, 0, 1], dtype=np.float32)}

@@ -17,7 +17,7 @@ def wavlm_init(device=torch.device('cuda:0')):
     wavlm_model_path = './WavLM/WavLM-Large.pt'
     # wavlm_model_path = '../../../My/process/WavLM-Base+.pt'
     # load the pre-trained checkpoints
-    checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'))
+    checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)
     cfg = WavLMConfig(checkpoint['cfg'])
     model = WavLM(cfg)
     model = model.to(device)
@@ -52,7 +52,7 @@ class DataPreprocessor:
 
         # create db for samples
         # map_size = 1024 * 1024 * 20  # in TB
-        map_size = 50 * 1024 * 1024 * 1024  # in TB
+        map_size = 100 * 1024 * 1024 * 1024  # in TB
         # map_size <<= 20  # in B
         self.dst_lmdb_env = lmdb.open(out_lmdb_dir, map_size=map_size)
         self.n_out_samples = 0

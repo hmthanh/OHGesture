@@ -61,8 +61,7 @@ if __name__ == '__main__':
     '''
 
     args = parse_args()
-    mydevice = torch.device("cuda:0")
-    # torch.cuda.set_device(int(args.gpu))
+    mydevice = torch.device(args.gpu)
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
