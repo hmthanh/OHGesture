@@ -15,7 +15,7 @@ def wavlm_init(device=torch.device('cuda:0')):
     [sys.path.append(i) for i in ['./WavLM']]
     from WavLM import WavLM, WavLMConfig
     wavlm_model_path = './WavLM/WavLM-Large.pt'
-
+    # wavlm_model_path = '../../../My/process/WavLM-Base+.pt'
     # load the pre-trained checkpoints
     checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)
     cfg = WavLMConfig(checkpoint['cfg'])
@@ -38,7 +38,7 @@ def wav2wavlm(model, wav_input_16khz, device=torch.device('cuda:0')):
         return rep.squeeze().cpu().detach().data.cpu().numpy()
 
 
-class DataPreprocessor:
+class DeepGesturePreprocessor:
     def __init__(self, clip_lmdb_dir, out_lmdb_dir, n_poses, subdivision_stride, pose_resampling_fps, device):
         self.n_poses = n_poses
         self.subdivision_stride = subdivision_stride
