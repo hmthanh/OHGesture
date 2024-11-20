@@ -158,7 +158,7 @@ def make_h5_gesture_dataset(root_path):
                 poses = np.asarray(poses)
 
                 # ~~~~~~~~~~~~~ Write Data ~~~~~~~~~~~~~
-                g_data = hdf.create_group(str(v_i))
+                g_data = hdf.create_group(name)
 
                 g_data.create_dataset('poses', data=poses)
                 g_data.create_dataset('audio_raw', data=audio_raw)
@@ -255,41 +255,41 @@ if __name__ == '__main__':
     source_path = './data/'
     target = './processed/'
     # make_zeggs_dataset(source_path, target)
-    # make_h5_gesture_dataset(target)
+    make_h5_gesture_dataset(target)
 
-    def sample_read_h5_dataset(h5_dataset_path):
-        poses_list = []
-        audio_list = []
-        mfcc_list = []
-        style_list = []
-
-        print("Processing dataset: " + h5_dataset_path)
-        with h5py.File(h5_dataset_path, 'r') as hdf:
-            for key in hdf.keys():
-                item = hdf[key]
-
-                # Access datasets
-                poses = item['poses'][:]
-                audio_raw = item['audio_raw'][:]
-                mfcc_raw = item['mfcc_raw'][:]
-                style_raw = item['style_raw'][:]
-
-                poses_list.append(poses)
-                audio_list.append(audio_raw)
-                mfcc_list.append(mfcc_raw)
-                style_list.append(style_raw)
-                print("Processing dataset: " + h5_dataset_path)
-
-        print(f"poses: {len(poses_list)}")
-        print(f"audio_raw: {len(audio_list)}")
-        print(f"mfcc_raw: {len(mfcc_list)}")
-        print(f"style_raw: {len(style_list)}")
-
-
-    train_path = os.path.join(target, 'train')
-    train_h5_name = 'datasets_train.h5'
-    sample_read_h5_dataset(os.path.join(train_path, train_h5_name))
-
-    valid_path = os.path.join(target, 'valid')
-    valid_h5_name = 'datasets_valid.h5'
-    sample_read_h5_dataset(os.path.join(valid_path, valid_h5_name))
+    # def sample_read_h5_dataset(h5_dataset_path):
+    #     poses_list = []
+    #     audio_list = []
+    #     mfcc_list = []
+    #     style_list = []
+    #
+    #     print("Processing dataset: " + h5_dataset_path)
+    #     with h5py.File(h5_dataset_path, 'r') as hdf:
+    #         for key in hdf.keys():
+    #             item = hdf[key]
+    #
+    #             # Access datasets
+    #             poses = item['poses'][:]
+    #             audio_raw = item['audio_raw'][:]
+    #             mfcc_raw = item['mfcc_raw'][:]
+    #             style_raw = item['style_raw'][:]
+    #
+    #             poses_list.append(poses)
+    #             audio_list.append(audio_raw)
+    #             mfcc_list.append(mfcc_raw)
+    #             style_list.append(style_raw)
+    #             print("Processing dataset: " + h5_dataset_path)
+    #
+    #     print(f"poses: {len(poses_list)}")
+    #     print(f"audio_raw: {len(audio_list)}")
+    #     print(f"mfcc_raw: {len(mfcc_list)}")
+    #     print(f"style_raw: {len(style_list)}")
+    #
+    #
+    # train_path = os.path.join(target, 'train')
+    # train_h5_name = 'datasets_train.h5'
+    # sample_read_h5_dataset(os.path.join(train_path, train_h5_name))
+    #
+    # valid_path = os.path.join(target, 'valid')
+    # valid_h5_name = 'datasets_valid.h5'
+    # sample_read_h5_dataset(os.path.join(valid_path, valid_h5_name))

@@ -1,8 +1,4 @@
-
 # ZEGGS
-train_data_path: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/train/train_lmdb/train_lmdb/"     # speaker_1_state_0
-val_data_path: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/valid/valid_lmdb/valid_lmdb/"
-
 processing_train_data_path: "../ZeroEGGSProcessing/processed/train/"     # speaker_1_state_0
 processing_val_data_path: "../ZeroEGGSProcessing/processed/valid/"
 
@@ -10,11 +6,10 @@ train_dataset_path: "../ZeroEGGSProcessing/h5dataset/train/"     # speaker_1_sta
 valid_dataset_path: "../ZeroEGGSProcessing/h5dataset/valid/"
 
 # 60 fps + normalized
-data_mean: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/mean.npz"
-data_std: "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/std.npz"
-
 processing_data_mean: "../ZeroEGGSProcessing/processed/mean.npz"
 processing_data_std: "../ZeroEGGSProcessing/processed/std.npz"
+
+wavlm_model_path: './WavLM/WavLM-Large.pt'
 
 n_poses: 88     # 88 -> 20*60
 n_codes: 30
@@ -24,8 +19,8 @@ batch_size: 300       # 384 -> 32
 loader_workers: 2
 epochs: 500     # 500 -> 10
 save_per_epochs: 25     # 20 -> 1
-model_save_path: "./output/train_DiffuseStyleGesture"
-name: "DiffuseStyleGesture"
+model_save_path: "./output/train_OHGesture"
+name: "OHGesture"
 log_interval: 50
 weight_decay: 0.0
 lr_anneal_steps: 0

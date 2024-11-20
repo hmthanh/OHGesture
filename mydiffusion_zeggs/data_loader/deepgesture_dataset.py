@@ -8,40 +8,31 @@ import sys
 import os
 import numpy as np
 [sys.path.append(i) for i in ['.', '..']]
-from data_loader.data_preprocessor import DataPreprocessor
+from data_loader.deepgesture_dataset import DeepGesturePreprocessor
 import h5py
 
 class DeepGestureDataset(Dataset):
     def __init__(self, h5file, n_poses, subdivision_stride, pose_resampling_fps, model=None, device=torch.device('cuda:0')):
         self.h5 = h5py.File(h5file, "r")
+        self.n_samples = len(self.h5.keys())
 
-        self.lmdb_dir = lmdb_dir
         self.n_poses = n_poses
         self.subdivision_stride = subdivision_stride
         self.skeleton_resampling_fps = pose_resampling_fps
         self.lang_model = None
 
-        logging.info("Reading data '{}'...".format(lmdb_dir))
-        if model is not None:
-            if 'Long_' in model:
-                preloaded_dir = lmdb_dir + '_cache_' + model.split('_')[-1]
-            if 'WavLM' in model:
-                preloaded_dir = lmdb_dir + '_cache_WavLM'
-        else:
-            preloaded_dir = lmdb_dir + '_cache'
-        # if not os.path.exists(preloaded_dir):
-        data_sampler = DataPreprocessor(lmdb_dir, preloaded_dir, n_poses,
+        data_sampler = DeepGesturePreprocessor(lmdb_dir, preloaded_dir, n_poses,
                                         subdivision_stride, pose_resampling_fps, device=device)
         data_sampler.run()
-        # else:
-        #     logging.info('Found pre-loaded samples from {}'.format(preloaded_dir))
 
-        # init lmdb
-        # map_size = 1024 * 20  # in MB
-        # map_size <<= 20  # in B
-        self.lmdb_env = lmdb.open(preloaded_dir, readonly=True, lock=False)  # default 10485760
-        with self.lmdb_env.begin() as txn:
-            self.n_samples = txn.stat()['entries']
+        gesture_mean = np.load(args.gesture_mean)
+        gesture_std = np.load(args.gesture_std)
+
+        # self.id = [speaker_id_dict[int(self.h5[str(i)]["speaker_id"][:][0])] for i in range(len(self.h5.keys()))]
+        self.audio = [self.h5[str(i)]["audio"][:] for i in range(len(self.h5.keys()))]
+        # self.text = [self.h5[str(i)]["text"][:] for i in range(len(self.h5.keys()))]
+        self.gesture = [(self.h5[str(i)]["gesture"][:] - gesture_mean) / gesture_std for i in range(len(self.h5.keys()))]
+        self.h5.close()
 
     def __len__(self):
         return self.n_samples
