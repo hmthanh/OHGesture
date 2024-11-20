@@ -15,9 +15,9 @@ def str2bool(v):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='DiffuseStyleGesture')
-    parser.add_argument('--config', default='./configs/DiffuseStyleGesture.yml')
+    parser.add_argument('--config', default='./configs/OHGesture.yml')
     parser.add_argument('--gpu', type=str, default='cuda:0')
-    parser.add_argument('--float_type', type=str, default='float32')
+    # parser.add_argument('--float_type', type=str, default='float32')
     # parser.add_argument('--no_cuda', type=list, default=['2'])
 
     args = parser.parse_args()

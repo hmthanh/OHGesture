@@ -4,7 +4,7 @@ import sys
 import pdb
 import logging
 from torch.utils.data import DataLoader
-from data_loader.lmdb_data_loader import TrinityDataset
+from data_loader.deepgesture_dataset import DeepGestureDataset
 import torch
 import yaml
 from pprint import pprint
@@ -29,19 +29,20 @@ def create_model_and_diffusion(args):
 
 
 def main(args, device):
-    # dataset
-    train_dataset = TrinityDataset(args.train_data_path,
+    # ~~~~~~~~~~~~~~~ Train ~~~~~~~~~~~~~~~
+    train_dataset = DeepGestureDataset(args.train_h5,
                                    n_poses=args.n_poses,
                                    subdivision_stride=args.subdivision_stride,
-                                   pose_resampling_fps=args.motion_resampling_framerate, model='WavLM', device=device)
+                                   pose_resampling_fps=args.motion_resampling_framerate)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
                               shuffle=True, drop_last=True, num_workers=0, pin_memory=True)
     # args.loader_workers
 
-    val_dataset = TrinityDataset(args.val_data_path,
+    # ~~~~~~~~~~~~~~~ Valid ~~~~~~~~~~~~~~~
+    val_dataset = DeepGestureDataset(args.valid_h5,
                                  n_poses=args.n_poses,
                                  subdivision_stride=args.subdivision_stride,
-                                 pose_resampling_fps=args.motion_resampling_framerate, model='WavLM', device=device)
+                                 pose_resampling_fps=args.motion_resampling_framerate)
     test_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size,
                              shuffle=False, drop_last=True, num_workers=args.loader_workers, pin_memory=False)
 
@@ -51,17 +52,20 @@ def main(args, device):
         os.mkdir(args.model_save_path)
 
     model, diffusion = create_model_and_diffusion(args)
-    model.to(mydevice)
-    TrainLoop(args, model, diffusion, mydevice, data=train_loader).run_loop()
+
+    model.to(device)
+    train_loop = TrainLoop(args, model, diffusion, device, data=train_loader)
+    train_loop.run_loop()
 
 
 if __name__ == '__main__':
     '''
     cd mydiffusion_zeggs/
+    python ohgesture.py --config=./configs/OHGesture.yml --gpu mps
     '''
 
     args = parse_args()
-    mydevice = torch.device(args.gpu)
+    device = torch.device(args.gpu)
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
@@ -72,4 +76,4 @@ if __name__ == '__main__':
 
     config = EasyDict(config)
 
-    main(config, mydevice)
+    main(config, device)

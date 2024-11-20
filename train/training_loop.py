@@ -47,7 +47,7 @@ class TrainLoop:
 
         self.step = 0
         self.resume_step = 0
-        self.global_batch = self.batch_size # * dist.get_world_size()
+        self.global_batch = self.batch_size  # * dist.get_world_size()
         # self.num_steps = args.num_steps
         self.num_epochs = 40000
         self.n_seed = 8
@@ -64,21 +64,25 @@ class TrainLoop:
         self.save_dir = args.save_dir
 
         self.device = device
-        if args.audio_feat == "wav encoder":
-            self.WavEncoder = MyWavEncoder().to(self.device)
+        # if args.audio_feat == "wav encoder":
+        #     self.WavEncoder = MyWavEncoder().to(self.device)
+        #     self.opt = AdamW([
+        #         {'params': self.mp_trainer.master_params, 'lr':self.lr, 'weight_decay':self.weight_decay},
+        #         {'params': self.WavEncoder.parameters(), 'lr':self.lr}
+        #     ])
+        # elif args.audio_feat == "mfcc" or args.audio_feat == 'wavlm':
+        #     self.opt = AdamW([
+        #         {'params': self.mp_trainer.master_params, 'lr':self.lr, 'weight_decay':self.weight_decay}
+        #     ])
+        if args.audio_feat == 'wavlm':
             self.opt = AdamW([
-                {'params': self.mp_trainer.master_params, 'lr':self.lr, 'weight_decay':self.weight_decay},
-                {'params': self.WavEncoder.parameters(), 'lr':self.lr}
-            ])
-        elif args.audio_feat == "mfcc" or args.audio_feat == 'wavlm':
-            self.opt = AdamW([
-                {'params': self.mp_trainer.master_params, 'lr':self.lr, 'weight_decay':self.weight_decay}
+                {'params': self.mp_trainer.master_params, 'lr': self.lr, 'weight_decay': self.weight_decay}
             ])
 
         # if self.resume_step:
         #     self._load_optimizer_state()
-            # Model was resumed, either due to a restart or a checkpoint
-            # being specified at the command line.
+        # Model was resumed, either due to a restart or a checkpoint
+        # being specified at the command line.
 
         self.schedule_sampler_type = 'uniform'
         self.schedule_sampler = create_named_schedule_sampler(self.schedule_sampler_type, diffusion)
@@ -143,7 +147,7 @@ class TrainLoop:
                 if not (not self.lr_anneal_steps or self.step + self.resume_step < self.lr_anneal_steps):
                     break
 
-                cond_ = {'y':{}}
+                cond_ = {'y': {}}
 
                 # cond_['y']['text'] = ['A person turns left with medium speed.', 'A human goes slowly about 1.5 meters forward.']
 
@@ -158,22 +162,24 @@ class TrainLoop:
                 cond_['y']['style'] = style.to(self.device)
                 cond_['y']['mask_local'] = self.mask_local_train
 
-                if self.args.audio_feat == 'wav encoder':
-                    # cond_['y']['audio'] = torch.rand(240, 2, 32).to(self.device)
-                    cond_['y']['audio'] = self.WavEncoder(audio.to(self.device)).permute(1, 0, 2)       # (batch, 240, 32)
-                elif self.args.audio_feat == 'mfcc':
-                    # cond_['y']['audio'] = torch.rand(80, 2, 13).to(self.device)
-                    cond_['y']['audio'] = mfcc.to(torch.float32).to(self.device).permute(1, 0, 2)       # [self.n_seed:, ...]      # (batch, 80, 13)
-                elif self.args.audio_feat == 'wavlm':
+                # if self.args.audio_feat == 'wav encoder':
+                #     # cond_['y']['audio'] = torch.rand(240, 2, 32).to(self.device)
+                #     cond_['y']['audio'] = self.WavEncoder(audio.to(self.device)).permute(1, 0, 2)  # (batch, 240, 32)
+                # elif self.args.audio_feat == 'mfcc':
+                #     # cond_['y']['audio'] = torch.rand(80, 2, 13).to(self.device)
+                #     cond_['y']['audio'] = mfcc.to(torch.float32).to(self.device).permute(1, 0, 2)  # [self.n_seed:, ...]      # (batch, 80, 13)
+                # elif self.args.audio_feat == 'wavlm':
+                #     cond_['y']['audio'] = wavlm.to(torch.float32).to(self.device)
+                if self.args.audio_feat == 'wavlm':
                     cond_['y']['audio'] = wavlm.to(torch.float32).to(self.device)
 
-                cond_['y']['mask'] = self.mask_train        # [..., self.n_seed:]
+                cond_['y']['mask'] = self.mask_train  # [..., self.n_seed:]
 
                 self.run_step(motion, cond_)
                 if self.step % self.log_interval == 0:
-                    for k,v in logger.get_current().name2val.items():
+                    for k, v in logger.get_current().name2val.items():
                         if k == 'loss':
-                            print('step[{}]: loss[{:0.5f}]'.format(self.step+self.resume_step, v))
+                            print('step[{}]: loss[{:0.5f}]'.format(self.step + self.resume_step, v))
 
                 # if self.step % 10000 == 0:
                 #     sample_fn = self.diffusion.p_sample_loop
@@ -238,11 +244,11 @@ class TrainLoop:
         # Save the last checkpoint if it wasn't already saved.
         # if (self.step - 1) % 50000 != 0:
         #     self.save()
-            # self.evaluate()
-
+        # self.evaluate()
 
     def run_step(self, batch, cond):
-        self.forward_backward(batch, cond)      # torch.Size([64, 251, 1, 196]) cond['y'].keys() dict_keys(['mask', 'lengths', 'text', 'tokens'])
+        # torch.Size([64, 251, 1, 196]) cond['y'].keys() dict_keys(['mask', 'lengths', 'text', 'tokens'])
+        self.forward_backward(batch, cond)
         self.mp_trainer.optimize(self.opt)
         self._anneal_lr()
         self.log_step()
@@ -296,10 +302,8 @@ class TrainLoop:
         logger.logkv("step", self.step + self.resume_step)
         logger.logkv("samples", (self.step + self.resume_step + 1) * self.global_batch)
 
-
     def ckpt_file_name(self):
-        return f"model{(self.step+self.resume_step):09d}.pt"
-
+        return f"model{(self.step + self.resume_step):09d}.pt"
 
     def save(self):
         def save_checkpoint(params):
@@ -318,8 +322,8 @@ class TrainLoop:
         save_checkpoint(self.mp_trainer.master_params)
 
         with bf.BlobFile(
-            bf.join(self.save_dir, f"opt{(self.step+self.resume_step):09d}.pt"),
-            "wb",
+                bf.join(self.save_dir, f"opt{(self.step + self.resume_step):09d}.pt"),
+                "wb",
         ) as f:
             torch.save(self.opt.state_dict(), f)
 
