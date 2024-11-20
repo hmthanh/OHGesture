@@ -139,3 +139,9 @@ dmypy.json
 .idea/
 .idea
 /mydiffusion_zeggs/model.pt
+
+
+# new
+*.npz
+.DS_Store
+*.h5
