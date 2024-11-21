@@ -35,8 +35,7 @@ def main(args, device):
                                    subdivision_stride=args.subdivision_stride,
                                    pose_resampling_fps=args.motion_resampling_framerate)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
-                              shuffle=True, drop_last=True, num_workers=0, pin_memory=True)
-    # args.loader_workers
+                              shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
 
     # ~~~~~~~~~~~~~~~ Valid ~~~~~~~~~~~~~~~
     val_dataset = DeepGestureDataset(args.valid_h5,

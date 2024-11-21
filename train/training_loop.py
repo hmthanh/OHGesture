@@ -247,6 +247,20 @@ class TrainLoop:
         # self.evaluate()
 
     def run_step(self, batch, cond):
+        """
+        :param batch:
+        :param cond:
+        batch: [batch_size, D, 1, n_frame]
+        cond: {
+            y:{
+                seed: [batch_size, D, 1, n_seed],
+                style: [batch_size, 6],
+                mask_local: [batch_size, 88],
+                audio: [batch_size, n_frame, 1024],
+                mask: [batch_size, 1, 1, n_frame],
+            }
+        }
+        """
         # torch.Size([64, 251, 1, 196]) cond['y'].keys() dict_keys(['mask', 'lengths', 'text', 'tokens'])
         self.forward_backward(batch, cond)
         self.mp_trainer.optimize(self.opt)
