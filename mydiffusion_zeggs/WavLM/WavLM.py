@@ -28,6 +28,7 @@ from modules_WavLM import (
     TransposeLast,
     GLU_Linear,
 )
+from torch.nn.utils.parametrizations import weight_norm
 
 logger = logging.getLogger(__name__)
 
@@ -523,7 +524,7 @@ class TransformerEncoder(nn.Module):
         nn.init.normal_(self.pos_conv.weight, mean=0, std=std)
         nn.init.constant_(self.pos_conv.bias, 0)
 
-        self.pos_conv = nn.utils.weight_norm(self.pos_conv, name="weight", dim=2)
+        self.pos_conv = weight_norm(self.pos_conv, name="weight", dim=2)
         self.pos_conv = nn.Sequential(self.pos_conv, SamePad(args.conv_pos), nn.GELU())
 
         if hasattr(args, "relative_position_embedding"):

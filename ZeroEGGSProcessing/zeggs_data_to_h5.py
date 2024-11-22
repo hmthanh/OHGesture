@@ -2,7 +2,6 @@ import os
 import glob
 import subprocess
 import numpy as np
-import lmdb
 from mfcc import MFCC
 import soundfile as sf
 import sys
@@ -21,102 +20,6 @@ style2onehot = {
     'Angry': [0, 0, 0, 0, 1, 0],
     'Relaxed': [0, 0, 0, 0, 0, 1],
 }
-
-
-def make_lmdb_gesture_dataset(root_path):
-    def make_lmdb_gesture_subdataset(base_path, lmdb_subname):
-        gesture_path = os.path.join(base_path, 'gesture_npz')
-        audio_path = os.path.join(base_path, 'normalize_audio_npz')
-        mfcc_path = os.path.join(base_path, 'mfcc')
-        out_path = os.path.join(base_path, lmdb_name)
-        if not os.path.exists(out_path):
-            os.makedirs(out_path)
-
-        # map_size = 1024 * 200  # in MB
-        # map_size <<= 20  # in B
-        # dataset_idx = 0
-        # print("map_size", map_size)
-        map_size = 10 * 1024 * 1024 * 1024
-
-        lmdb_path = os.path.normpath(os.path.join(os.path.normpath(out_path), lmdb_subname))
-        db = [lmdb.open(lmdb_path, map_size=map_size)]
-
-        # delete existing files
-        for i in range(1):
-            with db[i].begin(write=True) as txn:
-                txn.drop(db[i].open_db())
-
-        all_poses = []
-        bvh_files = sorted(glob.glob(gesture_path + "/*.npz"))
-        v_i = 0
-
-        for _, bvh_file in enumerate(bvh_files):
-            name = os.path.split(bvh_file)[1][:-4]
-            if name.split('_')[1] in style2onehot:
-                style = style2onehot[name.split('_')[1]]
-            else:
-                continue
-
-            print('process: ' + name)
-
-            poses = np.load(bvh_file)['gesture']
-            audio_raw = np.load(os.path.join(audio_path, name + '.npz'))['wav']
-            mfcc_raw = np.load(os.path.join(mfcc_path, name + '.npz'))['mfcc']
-
-            # process
-            data_mean = np.load(os.path.join(root_path, 'mean.npz'))['mean']
-            data_std = np.load(os.path.join(root_path, 'std.npz'))['std']
-            data_mean = np.array(data_mean).squeeze()
-            data_std = np.array(data_std).squeeze()
-            std = np.clip(data_std, a_min=0.01, a_max=None)
-            poses = (poses - data_mean) / std
-
-            poses = np.asarray(poses)
-            # clips = [{'vid': name, 'clips': []}]  # train and test
-            # clips[dataset_idx]['clips'].append(
-            #     {  # 'words': word_list,
-            #         'poses': poses,
-            #         'audio_raw': audio_raw,
-            #         'mfcc_raw': mfcc_raw,  # for debug
-            #         'style_raw': np.array(style)  # for debug
-            #     })
-            # df = pd.DataFrame([{
-            #     'vid': name,
-            #     'clips': [{
-            #         'poses': poses.tolist(),
-            #         'audio_raw': audio_raw.tolist(),
-            #         'mfcc_raw': mfcc_raw.tolist(),  # for debug
-            #         'style_raw': np.array(style).tolist()  # for debug
-            #     }]
-            # }])
-            #
-            # # write to db
-            # for i in range(1):
-            #     with db[i].begin(write=True) as txn:
-            #         # if len(clips[i]['clips']) > 0:
-            #         k = '{:010}'.format(v_i).encode('ascii')
-            #         # v = pa.serialize_pandas(df)
-            #         v = pa.ipc.serialize_pandas(df).to_pybytes()
-            #         # v = pyarrow.serialize(clips[i]).to_buffer()
-            #         txn.put(k, v)
-            #
-            # all_poses.append(poses)
-            v_i += 1
-
-        print('total length of dataset: ' + str(v_i))
-
-        # close db
-        for i in range(1):
-            db[i].sync()
-            db[i].close()
-
-    train_path = os.path.join(root_path, 'train')
-    lmdb_name = 'train_lmdb'
-    make_lmdb_gesture_subdataset(train_path, lmdb_name)
-    test_path = os.path.join(root_path, 'valid')
-    lmdb_name = 'valid_lmdb'
-    make_lmdb_gesture_subdataset(test_path, lmdb_name)
-
 
 def make_h5_gesture_dataset(root_path):
     def make_lmdb_gesture_subdataset(base_path, h5_name):
@@ -254,7 +157,7 @@ if __name__ == '__main__':
     '''
     source_path = './data/'
     target = './processed/'
-    # make_zeggs_dataset(source_path, target)
+    make_zeggs_dataset(source_path, target)
     make_h5_gesture_dataset(target)
 
     # def sample_read_h5_dataset(h5_dataset_path):

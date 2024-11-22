@@ -34,7 +34,7 @@ def wavlm_init(device=torch.device('cuda:2')):
     [sys.path.append(i) for i in ['./WavLM']]
     from WavLM import WavLM, WavLMConfig
     wavlm_model_path = './WavLM/WavLM-Large.pt'
-    checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'))  # load the pre-trained checkpoints
+    checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'), weights_only=False)  # load the pre-trained checkpoints
     cfg = WavLMConfig(checkpoint['cfg'])
     model = WavLM(cfg)
     model = model.to(device)
@@ -371,7 +371,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
     print("Creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(args)
     print(f"Loading checkpoints from [{model_path}]...")
-    state_dict = torch.load(model_path, map_location='cpu')
+    state_dict = torch.load(model_path, map_location='cpu', weights_only=True)
     load_model_wo_clip(model, state_dict)
     model.to(mydevice)
     model.eval()
