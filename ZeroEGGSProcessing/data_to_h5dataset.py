@@ -1,20 +1,11 @@
-import os
-import glob
-import subprocess
 import numpy as np
-import lmdb
-from mfcc import MFCC
-import soundfile as sf
-import sys
 import h5py
 import math
-from wavlm.wavlm_embedding import WavLM, WavLMConfig
 import torch
 import torch.nn.functional as F
-import platform
 
-# import sys
 # [sys.path.append(i) for i in ['./WavLM']]
+from wavlm.wavlm_embedding import WavLM, WavLMConfig
 
 def wavlm_init(args, device=torch.device('cuda:0')):
     # load the pre-trained checkpoints
