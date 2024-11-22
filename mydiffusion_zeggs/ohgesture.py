@@ -38,14 +38,15 @@ def main(args, device):
                               shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
 
     # ~~~~~~~~~~~~~~~ Valid ~~~~~~~~~~~~~~~
-    val_dataset = DeepGestureDataset(args.valid_h5,
-                                 n_poses=args.n_poses,
-                                 subdivision_stride=args.subdivision_stride,
-                                 pose_resampling_fps=args.motion_resampling_framerate)
-    test_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size,
-                             shuffle=False, drop_last=True, num_workers=args.loader_workers, pin_memory=False)
+    # val_dataset = DeepGestureDataset(args.valid_h5,
+    #                              n_poses=args.n_poses,
+    #                              subdivision_stride=args.subdivision_stride,
+    #                              pose_resampling_fps=args.motion_resampling_framerate)
+    # test_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size,
+    #                          shuffle=False, drop_last=True, num_workers=args.loader_workers, pin_memory=False)
 
-    logging.info('len of train loader:{}, len of test loader:{}'.format(len(train_loader), len(test_loader)))
+    # logging.info('len of train loader:{}, len of test loader:{}'.format(len(train_loader), len(test_loader)))
+    logging.info('len of train loader: {}'.format(len(train_loader)))
 
     if not os.path.exists(args.model_save_path):
         os.mkdir(args.model_save_path)
