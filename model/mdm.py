@@ -80,7 +80,7 @@ class MDM(nn.Module):
                                                               nhead=self.num_heads,
                                                               dim_feedforward=self.ff_size,
                                                               dropout=self.dropout,
-                                                              activation=self.activation, batch_first=True)
+                                                              activation=self.activation)
 
             self.seqTransEncoder = nn.TransformerEncoder(seqTransEncoderLayer,
                                                          num_layers=self.num_layers)

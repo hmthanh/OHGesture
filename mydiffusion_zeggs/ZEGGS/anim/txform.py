@@ -22,8 +22,8 @@ def xform_fk_vel(lxform, lpos, lvrt, lvel, parents):
 
 def xform_orthogonalize_from_xy(xy, eps=1e-10):
     xaxis = xy[..., 0:1, :]
-    zaxis = torch.cross(xaxis, xy[..., 1:2, :], dim=-1)
-    yaxis = torch.cross(zaxis, xaxis, dim=-1)
+    zaxis = torch.linalg.cross(xaxis, xy[..., 1:2, :])
+    yaxis = torch.linalg.cross(zaxis, xaxis)
 
     output = torch.cat([
         xaxis / (torch.norm(xaxis, 2, dim=-1)[..., None] + eps),
