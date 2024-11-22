@@ -145,3 +145,4 @@ dmypy.json
 *.npz
 .DS_Store
 *.h5
+ZeroEGGSProcessing/fasttext/crawl-300d-2M.vec
