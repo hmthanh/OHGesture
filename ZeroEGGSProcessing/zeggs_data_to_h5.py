@@ -2,7 +2,7 @@ import os
 import glob
 import subprocess
 import numpy as np
-from mfcc import MFCC
+# from mfcc import MFCC
 import soundfile as sf
 import sys
 import h5py
@@ -27,7 +27,7 @@ def make_h5_gesture_dataset(root_path):
 
         gesture_path = os.path.join(base_path, 'gesture_npz')
         audio_path = os.path.join(base_path, 'normalize_audio_npz')
-        mfcc_path = os.path.join(base_path, 'mfcc')
+        # mfcc_path = os.path.join(base_path, 'mfcc')
 
         bvh_files = sorted(glob.glob(gesture_path + "/*.npz"))
         total_bvh_files = len(bvh_files)
@@ -48,7 +48,7 @@ def make_h5_gesture_dataset(root_path):
                 # load data
                 poses = np.load(bvh_file)['gesture']
                 audio_raw = np.load(os.path.join(audio_path, name + '.npz'))['wav']
-                mfcc_raw = np.load(os.path.join(mfcc_path, name + '.npz'))['mfcc']
+                # mfcc_raw = np.load(os.path.join(mfcc_path, name + '.npz'))['mfcc']
 
                 # process mean and std
                 data_mean = np.load(os.path.join(root_path, 'mean.npz'))['mean']
@@ -65,7 +65,7 @@ def make_h5_gesture_dataset(root_path):
 
                 g_data.create_dataset('poses', data=poses)
                 g_data.create_dataset('audio_raw', data=audio_raw)
-                g_data.create_dataset('mfcc_raw', data=mfcc_raw)
+                # g_data.create_dataset('mfcc_raw', data=mfcc_raw)
                 g_data.create_dataset('style_raw', data=np.array(style))
 
                 v_i += 1
@@ -93,12 +93,12 @@ def make_zeggs_dataset(source_path, target):
         target_audio_path = os.path.join(target, 'normalize_audio')
         target_audionpz_path = os.path.join(target, 'normalize_audio_npz')
         target_gesture_path = os.path.join(target, 'gesture_npz')
-        target_mfcc_path = os.path.join(target, 'mfcc')
+        # target_mfcc_path = os.path.join(target, 'mfcc')
 
         if not os.path.exists(target_audio_path):
             os.mkdir(target_audio_path)
-        if not os.path.exists(target_mfcc_path):
-            os.mkdir(target_mfcc_path)
+        # if not os.path.exists(target_mfcc_path):
+        #     os.mkdir(target_mfcc_path)
         if not os.path.exists(target_audionpz_path):
             os.mkdir(target_audionpz_path)
         if not os.path.exists(target_gesture_path):
@@ -114,16 +114,16 @@ def make_zeggs_dataset(source_path, target):
             # audio
             print('normalize audio: ' + name + '.wav')
             normalize_wav_path = os.path.join(target_audio_path, name + '.wav')
-            cmd = ['ffmpeg-normalize', wav_file, '-o', normalize_wav_path, '-ar', '16000']
+            cmd = ['ffmpeg-normalize', wav_file, '-o', normalize_wav_path, '-ar', '16000', '--keep-loudness-range-target']
             subprocess.call(cmd)
 
-            print('extract MFCC...')
-            obj = MFCC(frate=20)
+            # print('extract MFCC...')
+            # obj = MFCC(frate=20)
             # wav, fs = librosa.load(normalize_wav_path, sr=16000)
             wav, fs = sf.read(normalize_wav_path)
-            mfcc = obj.sig2s2mfc_energy(wav, None)
-            print(mfcc[:, :-2].shape)  # -1 -> -2      # (502, 13)
-            np.savez_compressed(os.path.join(target_mfcc_path, name + '.npz'), mfcc=mfcc[:, :-2])
+            # mfcc = obj.sig2s2mfc_energy(wav, None)
+            # print(mfcc[:, :-2].shape)  # -1 -> -2      # (502, 13)
+            # np.savez_compressed(os.path.join(target_mfcc_path, name + '.npz'), mfcc=mfcc[:, :-2])
             np.savez_compressed(os.path.join(target_audionpz_path, name + '.npz'), wav=wav)
 
             # bvh
