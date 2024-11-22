@@ -169,16 +169,13 @@ if __name__ == '__main__':
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
-
-    # if platform.system() == 'Darwin' and torch.backends.mps.is_available():
-    #     config['device'] = torch.device('mps')  # Use MPS for MacBooks with Apple Silicon
-    # else:
-    #     config['device'] = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+    
     for k, v in vars(args).items():
         config[k] = v
     pprint(config)
     args = EasyDict(config)
+    
+    device_type = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
     device = torch.device(args.gpu)
     args.device = device
 

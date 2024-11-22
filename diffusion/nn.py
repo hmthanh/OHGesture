@@ -8,6 +8,8 @@ import math
 import torch as th
 import torch.nn as nn
 
+device_type = 'cuda' if th.cuda.is_available() else 'mps' if th.backends.mps.is_available() else 'cpu'
+
 
 # PyTorch 1.7 has SiLU, but we support PyTorch 1.5.
 class SiLU(nn.Module):
@@ -148,7 +150,7 @@ def checkpoint(func, inputs, params, flag):
 class CheckpointFunction(th.autograd.Function):
     @staticmethod
     # @th.cuda.amp.custom_fwd
-    @th.amp.custom_bwd(device_type='mps')
+    @th.amp.custom_bwd(device_type=device_type)
     def forward(ctx, run_function, length, *args):
         ctx.run_function = run_function
         ctx.input_length = length
@@ -159,7 +161,7 @@ class CheckpointFunction(th.autograd.Function):
 
     # @th.cuda.amp.custom_bwd
     @staticmethod
-    @th.amp.custom_bwd(device_type='mps')
+    @th.amp.custom_bwd(device_type=device_type)
     def backward(ctx, *output_grads):
         args = list(ctx.saved_tensors)
 
