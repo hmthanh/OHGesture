@@ -36,7 +36,6 @@ def main(args, device):
                                    pose_resampling_fps=args.motion_resampling_framerate, model='WavLM', device=device)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
                               shuffle=True, drop_last=True, num_workers=0, pin_memory=True)
-    # args.loader_workers
 
     val_dataset = TrinityDataset(args.val_data_path,
                                  n_poses=args.n_poses,

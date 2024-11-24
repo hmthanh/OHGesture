@@ -8,15 +8,19 @@ import numpy as np
 import librosa
 from gensim.models import KeyedVectors
 import csv
+import os
+from praatio import textgrid
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='OHGesture')
-    # parser.add_argument('--config', default='./configs/OHGesture.yml')
-    parser.add_argument('--gpu', type=str, default='cuda:0')
+    parser.add_argument('--src', type=str, default='./data/train')
+    parser.add_argument('--dest', type=str, default='./processed/train')
     parser.add_argument('--word2vec_model', type=str, default="./fasttext/crawl-300d-2M.vec")
 
     args = parser.parse_args()
     return args
+
 
 def load_word_embeddings(word2vec_model):
     word2vec_model = KeyedVectors.load_word2vec_format(word2vec_model, binary=False)
@@ -30,13 +34,37 @@ def load_word_embeddings(word2vec_model):
         break
 
 
-def load_csv_aligned(csv_aligned_file):
+def text_grid2tsv(file):
+    # Read the TextGrid file using praatio
+    tg = textgrid.openTextgrid(file, False)
+
+    # Get the first tier (assuming that's what we want based on original code)
+    tier = tg.getTier(tg.tierNames[0])
+
+    # Create output filename by replacing .TextGrid with .tsv
+    output_file = file.replace('.TextGrid', '.tsv')
+
+    # Write entries to TSV
+    with open(output_file, 'w', newline='') as f:
+        tsv_writer = csv.writer(f, delimiter='\t')
+
+        # Iterate through entries in the tier
+        for entry in tier.entries:
+            start_time, end_time, label = entry
+
+            # Skip empty labels (similar to original)
+            if label == '':
+                continue
+
+            tsv_writer.writerow([start_time, end_time, label])
+
+def load_tsv_aligned(file):
     sentence = []
-    with open(csv_aligned_file, "r") as f:
+    with open(file, "r") as f:
         reader = csv.reader(f)
         for line in reader:
             if len(line) == 4:
-                raw_word, word, start, end = line
+                start, end, raw_word = line
                 start = float(start)
                 end = float(end)
                 sentence.append([start, end, raw_word])
@@ -44,66 +72,56 @@ def load_csv_aligned(csv_aligned_file):
     return sentence
 
 
-# def load_word2vectors(fname):  # take about 03:27
-#     print("Loading word2vector ...")
-#     fin = io.open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore')
-#     n, d = map(int, fin.readline().split())
-#     data = {}
-#     for line in tqdm(fin):
-#         tokens = line.rstrip().split(' ')
-#         data[tokens[0]] = np.array([float(v) for v in tokens[1:]])
-#     return data
-
-def word2vec(sentence, word2vec_model, length):
-    tensor_vec = np.zeros([length, 300])
+def word2vec(sentence, word2vec_model, n_frames, fps):
+    tensor_vec = np.zeros([n_frames, 300])
 
     for start, end, word in sentence:
+        start_frame = int(start * fps)
+        end_frame = int(end * fps)
         vector = word2vec_model[word]
-        tensor_vec[start:end, :] += vector
+        tensor_vec[start_frame:end_frame, :] = vector
 
     return tensor_vec
 
 
-
 if __name__ == '__main__':
     '''
-    cd mydiffusion_zeggs/
-    python word2vec.py --config=./configs/OHGesture.yml --gpu mps
+    python word2vec.py --src=./data/train  --dest=./processed/train/embedding --word2vec_model=./fasttext/crawl-300d-2M.vec
     '''
 
     args = parse_args()
-    # device = torch.device(args.gpu)
-
-    # with open(args.config) as f:
-    #     config = yaml.safe_load(f)
-    #
-    # for k, v in vars(args).items():
-    #     config[k] = v
-    # pprint(config)
     pprint(args)
-    # word2vector = load_word2vectors(fname=args.word2vec_model)
-    tsvpath = ""
 
-    audiofile = "./data/train/001_Neutral_0_x_1_0.wav"
+    if not os.path.exists(args.dest):
+        os.makedirs(args.dest)
+    files = os.listdir(args.src)
 
-    wav, sr = librosa.load(audiofile, sr=16000)
-    print(wav.shape)
+    wav_files = [file for file in files if file.endswith(".wav")]
+    tsv_files = [file for file in files if file.endswith(".tsv")]
+    tgd_files = [file for file in files if file.endswith(".TextGrid")]
+    fps = 20
 
-    audio_length_seconds = len(wav) / sr
+    # assert len(wav_files) == len(csv_files)
 
-    print(f"Audio length: {audio_length_seconds} seconds")
-
-    # load_word_embeddings(args.word2vec_model)
     word2vec_model = KeyedVectors.load_word2vec_format(args.word2vec_model, binary=False)
-    align_sentence = load_csv_aligned('./data/train/001_Neutral_0_x_1_0.csv')
-    word2vec(align_sentence, word2vec_model, audio_length_seconds)
 
-    # for item in align_sentence:
-    #     print(item)
+    if len(tsv_files) <= 0:
+        for i, tgd_file in enumerate(tgd_files):
+            file = os.path.join(args.src, tgd_file)
+            text_grid2tsv(file)
 
-    # tsv = load_tsv(tsvpath.replace('.TextGrid', '.tsv'), word2vector, clip_len)
+    for i, wav_file in enumerate(wav_files):
+        wav_file_path = os.path.join(args.src, wav_file)
+        wav, sr = librosa.load(wav_file_path, sr=16000)
+        print(wav.shape)
 
-    # config = EasyDict(config)
+        audio_length_seconds = len(wav) / sr
+        print(f"Audio length: {audio_length_seconds} seconds")
 
+        tsv_file = os.path.join(args.src, f"{wav_file[:-4]}.tsv")
+        align_sentence = load_tsv_aligned(tsv_file)
 
-
+        n_frames = int(audio_length_seconds * fps)
+        sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps)
+        print(np.shape(sentence_vec), " -> saving ", f"{wav_file[:-4]}.npy")
+        np.save(os.path.join(args.dest, f"{wav_file[:-4]}.npy"), sentence_vec)

@@ -389,11 +389,8 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
 
 
 if __name__ == '__main__':
-    # audio_path = '../../../My/Test_audio/Example1/ZeroEGGS_cut.wav'
-    # mfcc_path = "../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/valid/mfcc/015_Happy_4_mirror_x_1_0.npz"       # 010_Sad_4_x_1_0.npz
-    # audiowavlm_path = "./021_Happy_4_x_1_0.wav"
-    # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./016_Neutral_4_x_1_0.wav" --max_len 2400
-    # python sample.py --config=./configs/DiffuseStyleGesture.yml --no_cuda 0 --gpu 0 --model_path './model000450000.pt' --audiowavlm_path "./021_Happy_4_x_1_0.wav" --max_len 320
+    # python sample.py --config=./configs/DiffuseStyleGesture.yml --gpu mps --model_path './model000450000.pt' --audiowavlm_path "./016_Neutral_4_x_1_0.wav"
+    # python sample.py --config=./configs/DiffuseStyleGesture.yml --gpu mps --model_path './model000450000.pt' --audiowavlm_path "./021_Happy_4_x_1_0.wav"
     # prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     # save_dir = 'sample_' + prefix
     save_dir = 'sample_dir'
