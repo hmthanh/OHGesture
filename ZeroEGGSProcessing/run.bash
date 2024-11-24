@@ -1,0 +1,1 @@
+mfa align --clean /Users/thanh/OpenHuman/OHGesture/ZeroEGGSProcessing/data/wav english_us_arpa english_us_arpa /Users/thanh/OpenHuman/OHGesture/ZeroEGGSProcessing/data/aligned
