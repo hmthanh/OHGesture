@@ -3,8 +3,10 @@ import pdb
 import numpy as np
 from omegaconf import DictConfig
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import sys
+
 [sys.path.append(i) for i in ['.', '..', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
 
 from anim import bvh, quat, txform
@@ -12,91 +14,18 @@ from utils_zeggs import write_bvh
 import torch
 from scipy.signal import savgol_filter
 
-
 bone_names = [
-        "Hips",
-        "Spine",
-        "Spine1",
-        "Spine2",
-        "Spine3",
-        "Neck",
-        "Neck1",
-        "Head",
-        "HeadEnd",
-        "RightShoulder",
-        "RightArm",
-        "RightForeArm",
-        "RightHand",
-        "RightHandThumb1",
-        "RightHandThumb2",
-        "RightHandThumb3",
-        "RightHandThumb4",
-        "RightHandIndex1",
-        "RightHandIndex2",
-        "RightHandIndex3",
-        "RightHandIndex4",
-        "RightHandMiddle1",
-        "RightHandMiddle2",
-        "RightHandMiddle3",
-        "RightHandMiddle4",
-        "RightHandRing1",
-        "RightHandRing2",
-        "RightHandRing3",
-        "RightHandRing4",
-        "RightHandPinky1",
-        "RightHandPinky2",
-        "RightHandPinky3",
-        "RightHandPinky4",
-        "RightForeArmEnd",
-        "RightArmEnd",
-        "LeftShoulder",
-        "LeftArm",
-        "LeftForeArm",
-        "LeftHand",
-        "LeftHandThumb1",
-        "LeftHandThumb2",
-        "LeftHandThumb3",
-        "LeftHandThumb4",
-        "LeftHandIndex1",
-        "LeftHandIndex2",
-        "LeftHandIndex3",
-        "LeftHandIndex4",
-        "LeftHandMiddle1",
-        "LeftHandMiddle2",
-        "LeftHandMiddle3",
-        "LeftHandMiddle4",
-        "LeftHandRing1",
-        "LeftHandRing2",
-        "LeftHandRing3",
-        "LeftHandRing4",
-        "LeftHandPinky1",
-        "LeftHandPinky2",
-        "LeftHandPinky3",
-        "LeftHandPinky4",
-        "LeftForeArmEnd",
-        "LeftArmEnd",
-        "RightUpLeg",
-        "RightLeg",
-        "RightFoot",
-        "RightToeBase",
-        "RightToeBaseEnd",
-        "RightLegEnd",
-        "RightUpLegEnd",
-        "LeftUpLeg",
-        "LeftLeg",
-        "LeftFoot",
-        "LeftToeBase",
-        "LeftToeBaseEnd",
-        "LeftLegEnd",
-        "LeftUpLegEnd"
-    ]
+    "Hips", "Spine", "Spine1", "Spine2", "Spine3", "Neck", "Neck1", "Head", "HeadEnd", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "RightHandThumb1", "RightHandThumb2", "RightHandThumb3", "RightHandThumb4", "RightHandIndex1", "RightHandIndex2", "RightHandIndex3", "RightHandIndex4", "RightHandMiddle1", "RightHandMiddle2", "RightHandMiddle3", "RightHandMiddle4", "RightHandRing1", "RightHandRing2", "RightHandRing3", "RightHandRing4", "RightHandPinky1", "RightHandPinky2",
+    "RightHandPinky3", "RightHandPinky4", "RightForeArmEnd", "RightArmEnd", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "LeftHandThumb1", "LeftHandThumb2", "LeftHandThumb3", "LeftHandThumb4", "LeftHandIndex1", "LeftHandIndex2", "LeftHandIndex3", "LeftHandIndex4", "LeftHandMiddle1", "LeftHandMiddle2", "LeftHandMiddle3", "LeftHandMiddle4", "LeftHandRing1", "LeftHandRing2", "LeftHandRing3", "LeftHandRing4", "LeftHandPinky1", "LeftHandPinky2", "LeftHandPinky3", "LeftHandPinky4",
+    "LeftForeArmEnd", "LeftArmEnd", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToeBaseEnd", "RightLegEnd", "RightUpLegEnd", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "LeftToeBaseEnd", "LeftLegEnd", "LeftUpLegEnd"
+]
 
 
 def preprocess_animation(animation_file, fps=60):
-    anim_data = bvh.load(animation_file)       #  'rotations' (8116, 75, 3), 'positions', 'offsets' (75, 3), 'parents', 'names' (75,), 'order' 'zyx', 'frametime' 0.016667
+    anim_data = bvh.load(animation_file)  # 'rotations' (8116, 75, 3), 'positions', 'offsets' (75, 3), 'parents', 'names' (75,), 'order' 'zyx', 'frametime' 0.016667
     nframes = len(anim_data["rotations"])
 
-    if fps != 60 :
+    if fps != 60:
         rate = 60 // fps
         anim_data["rotations"] = anim_data["rotations"][0:nframes:rate]
         anim_data["positions"] = anim_data["positions"][0:nframes:rate]
@@ -217,11 +146,11 @@ def preprocess_animation(animation_file, fps=60):
 
 
 def pose2bvh(poses, outpath, length, smoothing=False, smooth_foot=False):
-    parents = np.array([-1,  0,  1,  2,  3,  4,  5,  6,  7,  4,  9, 10, 11, 12, 13, 14, 15,
-       12, 17, 18, 19, 12, 21, 22, 23, 12, 25, 26, 27, 12, 29, 30, 31, 12,
-       11,  4, 35, 36, 37, 38, 39, 40, 41, 38, 43, 44, 45, 38, 47, 48, 49,
-       38, 51, 52, 53, 38, 55, 56, 57, 38, 37,  0, 61, 62, 63, 64, 63, 62,
-        0, 68, 69, 70, 71, 70, 69], dtype=np.int32)
+    parents = np.array([-1, 0, 1, 2, 3, 4, 5, 6, 7, 4, 9, 10, 11, 12, 13, 14, 15,
+                        12, 17, 18, 19, 12, 21, 22, 23, 12, 25, 26, 27, 12, 29, 30, 31, 12,
+                        11, 4, 35, 36, 37, 38, 39, 40, 41, 38, 43, 44, 45, 38, 47, 48, 49,
+                        38, 51, 52, 53, 38, 55, 56, 57, 38, 37, 0, 61, 62, 63, 64, 63, 62,
+                        0, 68, 69, 70, 71, 70, 69], dtype=np.int32)
     order = 'zyx'
     dt = 0.05
     njoints = 75
@@ -248,11 +177,11 @@ def pose2bvh(poses, outpath, length, smoothing=False, smooth_foot=False):
     P_lvrt = out_poses[:, 13 + njoints * 12: 13 + njoints * 15].reshape([length, njoints, 3])
 
     P_ltxy = torch.as_tensor(P_ltxy, dtype=torch.float32)
-    P_lrot = quat.from_xform(txform.xform_orthogonalize_from_xy(P_ltxy).cpu().numpy())        #
+    P_lrot = quat.from_xform(txform.xform_orthogonalize_from_xy(P_ltxy).cpu().numpy())  #
 
     if smooth_foot:
         pdb.set_trace()
-        next_poses_LeftToeBase = P_lrot[:, -7]      # (length, 4)       7/14, 5/12
+        next_poses_LeftToeBase = P_lrot[:, -7]  # (length, 4)       7/14, 5/12
         next_poses_RightToeBase = P_lrot[:, -14]
         next_poses_LeftToeBase = np.zeros_like(next_poses_LeftToeBase)
         next_poses_RightToeBase = np.zeros_like(next_poses_RightToeBase)
@@ -273,6 +202,7 @@ def pose2bvh(poses, outpath, length, smoothing=False, smooth_foot=False):
               P_lrot,
               parents, bone_names, order, dt
               )
+
 
 if __name__ == '__main__':
     '''
@@ -308,7 +238,7 @@ if __name__ == '__main__':
     # ), parents, dt, order = preprocess_animation(animation_file)
     for item in os.listdir(os.path.join(animation_file, '20fps')):
         print(item)
-        all_poses, parents, dt, order, njoints = preprocess_animation(os.path.join(animation_file, '20fps', item), fps=60)       # 20
+        all_poses, parents, dt, order, njoints = preprocess_animation(os.path.join(animation_file, '20fps', item), fps=60)  # 20
         pose2bvh(poses=all_poses, outpath=os.path.join(animation_file, 'processed', item), length=all_poses.shape[0], smoothing=True, smooth_foot=False)
 
     # length = all_poses.shape[0]
@@ -329,8 +259,6 @@ if __name__ == '__main__':
     #
     # outpath = "../mydiffusion_zeggs/sample_20230104_192239/20230104_193613_smoothing_SG_minibatch_2720_[1, 0, 0, 0, 0, 0]_123456_1.bvh"
     # pose2bvh(poses=out_poses, outpath="../mydiffusion_zeggs/sample_20230104_192239/20230104_193613_smoothing_SG_minibatch_2720_[1, 0, 0, 0, 0, 0]_123456_1.bvh", length=length, smoothing=True, smooth_foot=False)
-
-
 
     # root_vel_mean = root_vel.mean(axis=0)
     # root_vrt_mean = root_vrt.mean(axis=0)
