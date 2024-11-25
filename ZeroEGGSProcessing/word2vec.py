@@ -58,12 +58,13 @@ def text_grid2tsv(file):
 
             tsv_writer.writerow([start_time, end_time, label])
 
+
 def load_tsv_aligned(file):
     sentence = []
     with open(file, "r") as f:
-        reader = csv.reader(f)
-        for line in reader:
-            if len(line) == 4:
+        for i, line in enumerate(f.readlines()):
+            line = line.strip().split("\t")
+            if len(line) == 3:
                 start, end, raw_word = line
                 start = float(start)
                 end = float(end)
@@ -72,15 +73,53 @@ def load_tsv_aligned(file):
     return sentence
 
 
-def word2vec(sentence, word2vec_model, n_frames, fps):
+def load_csv_aligned(file):
+    sentence = []
+    with open(file, "r") as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if len(line) == 5:
+                start, end, raw_word, type, speaker = line
+
+                if type == "words":
+                    start = float(start)
+                    end = float(end)
+                    sentence.append([start, end, raw_word])
+
+    return sentence
+
+
+def word2vec(sentence, word2vec_model, n_frames, fps, tsv_file):
     tensor_vec = np.zeros([n_frames, 300])
 
     for start, end, word in sentence:
         start_frame = int(start * fps)
         end_frame = int(end * fps)
-        vector = word2vec_model[word]
+
+        try:
+            # Get the vector for the word
+            vector = word2vec_model.get_vector(word.lower())
+
+        except KeyError:
+            with open("./data/train/log.txt", "a") as f:
+                f.write(f"Inside file {file}, Token {word} not found in word2vec model\n")
+            print(f"Token {word} not found in word2vec model")
+
+            # Handle missing words
+            # print(f"Keyword '{word}' not found in {tsv_file}")
+            # try:
+            #     # Find the most similar word in the vocabulary
+            #     similar_word = word2vec_model.most_similar(normalized_word, topn=1)[0][0]
+            #     print(f"Using similar word '{similar_word}' for '{word}'")
+            #     vector = word2vec_model.get_vector(similar_word)
+            # except KeyError:
+            #     # If no similar word is found, use a zero vector
+            #     print(f"No similar word found for '{word}'. Using a zero vector.")
+            #     vector = np.zeros(300)
+
         tensor_vec[start_frame:end_frame, :] = vector
 
+    print("embedding shape", np.shape(tensor_vec))
     return tensor_vec
 
 
@@ -98,6 +137,7 @@ if __name__ == '__main__':
 
     wav_files = [file for file in files if file.endswith(".wav")]
     tsv_files = [file for file in files if file.endswith(".tsv")]
+    csv_files = [file for file in files if file.endswith(".csv")]
     tgd_files = [file for file in files if file.endswith(".TextGrid")]
     fps = 20
 
@@ -105,23 +145,25 @@ if __name__ == '__main__':
 
     word2vec_model = KeyedVectors.load_word2vec_format(args.word2vec_model, binary=False)
 
-    if len(tsv_files) <= 0:
-        for i, tgd_file in enumerate(tgd_files):
-            file = os.path.join(args.src, tgd_file)
-            text_grid2tsv(file)
+    # if len(tsv_files) <= 0:
+    #     for i, tgd_file in enumerate(tgd_files):
+    #         file = os.path.join(args.src, tgd_file)
+    #         text_grid2tsv(file)
 
     for i, wav_file in enumerate(wav_files):
         wav_file_path = os.path.join(args.src, wav_file)
         wav, sr = librosa.load(wav_file_path, sr=16000)
+        audio_length_seconds = len(wav) / sr
         print(wav.shape)
 
-        audio_length_seconds = len(wav) / sr
-        print(f"Audio length: {audio_length_seconds} seconds")
+        # tsv_file = os.path.join(args.src, f"{wav_file[:-4]}.tsv")
+        # align_sentence = load_tsv_aligned(tsv_file)
 
-        tsv_file = os.path.join(args.src, f"{wav_file[:-4]}.tsv")
-        align_sentence = load_tsv_aligned(tsv_file)
+        csv_file = os.path.join(args.src, f"{wav_file[:-4]}.csv")
+        align_sentence = load_tsv_aligned(csv_file)
 
         n_frames = int(audio_length_seconds * fps)
-        sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps)
+        print(f"Audio length: {audio_length_seconds} -> {audio_length_seconds * fps}")
+        sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps, tsv_file)
         print(np.shape(sentence_vec), " -> saving ", f"{wav_file[:-4]}.npy")
         np.save(os.path.join(args.dest, f"{wav_file[:-4]}.npy"), sentence_vec)

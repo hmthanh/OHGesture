@@ -27,6 +27,7 @@ def make_h5_gesture_dataset(root_path):
 
         gesture_path = os.path.join(base_path, 'gesture_npz')
         audio_path = os.path.join(base_path, 'normalize_audio_npz')
+        embedding_path = os.path.join(base_path, 'embedding')
         # mfcc_path = os.path.join(base_path, 'mfcc')
 
         bvh_files = sorted(glob.glob(gesture_path + "/*.npz"))
@@ -60,6 +61,10 @@ def make_h5_gesture_dataset(root_path):
 
                 poses = np.asarray(poses)
 
+                # Embedding
+                np.load(os.path.join(embedding_path, name + ""))
+
+
                 # ~~~~~~~~~~~~~ Write Data ~~~~~~~~~~~~~
                 g_data = hdf.create_group(name)
 
@@ -82,7 +87,7 @@ def make_h5_gesture_dataset(root_path):
     valid_h5_name = 'datasets_valid.h5'
     make_lmdb_gesture_subdataset(test_path, valid_h5_name)
 
-def make_zeggs_dataset(source_path, target):
+def processing_zeggs_dataset(source_path, target):
     if not os.path.exists(target):
         os.mkdir(target)
 
@@ -157,7 +162,7 @@ if __name__ == '__main__':
     '''
     source_path = './data/'
     target = './processed/'
-    make_zeggs_dataset(source_path, target)
+    processing_zeggs_dataset(source_path, target)
     make_h5_gesture_dataset(target)
 
     # def sample_read_h5_dataset(h5_dataset_path):

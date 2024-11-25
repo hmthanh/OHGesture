@@ -147,3 +147,7 @@ dmypy.json
 *.h5
 ZeroEGGSProcessing/fasttext/crawl-300d-2M.vec
 *.npy
+*.TextGrid
+*.wav
+*.lab
+*.txt
