@@ -154,12 +154,14 @@ class TrainLoop:
                 # motion = torch.rand(2, 135, 1, 80).to(self.device)
                 # pose_seq, _, style, audio, mfcc, wavlm = batch  # (batch, 240, 135), (batch, 30), (batch, 64000)
                 # pose_seq, _, style, _, _, wavlm = batch
-                pose_seq, style, wavlm = batch
+                pose_seq, style, wavlm, embedding = batch
                 motion = pose_seq.permute(0, 2, 1).unsqueeze(2).to(self.device)
 
                 cond_['y']['seed'] = motion[..., 0:self.n_seed]
                 # motion = motion[..., self.n_seed:]
                 cond_['y']['style'] = style.to(self.device)
+                cond_['y']['text'] = embedding.to(torch.float32).to(self.device)
+
                 cond_['y']['mask_local'] = self.mask_local_train
 
                 # if self.args.audio_feat == 'wav encoder':

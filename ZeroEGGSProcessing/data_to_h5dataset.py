@@ -64,10 +64,12 @@ class DeepGesturePreprocessor:
                 # Access datasets
                 poses = item['poses'][:]
                 audio_raw = item['audio_raw'][:]
-                mfcc_raw = item['mfcc_raw'][:]
+                # mfcc_raw = item['mfcc_raw'][:]
+                mfcc_raw = []
                 style_raw = item['style_raw'][:]
+                embedding_raw = item['embedding'][:]
 
-                self.sample_clip_to_h5_dataset(key, poses, audio_raw, mfcc_raw, style_raw)
+                self.sample_clip_to_h5_dataset(key, poses, audio_raw, mfcc_raw, style_raw, embedding_raw)
 
         with h5py.File(self.h5_dataset, 'r') as h5:
             print("Dataset h5 after processing: ", len(h5.keys()))
@@ -82,14 +84,12 @@ class DeepGesturePreprocessor:
                 emotions = item['emotion'][:]
                 speech = item['speech'][:]
 
-                print("gesture: ", gesture.shape)
-                print("emotion: ", emotions.shape)
-                print("speech", speech.shape)
+                print("gesture: ", gesture.shape, "emotion: ", emotions.shape, "speech", speech.shape)
 
                 break
 
 
-    def sample_clip_to_h5_dataset(self, key, poses, audio_raw, mfcc_raw, style_raw):
+    def sample_clip_to_h5_dataset(self, key, poses, audio_raw, mfcc_raw, style_raw, embedding_raw):
         print("Processing data item : " + key)
         # divide
         gesture_list = []
@@ -97,11 +97,14 @@ class DeepGesturePreprocessor:
         emotion_list = []
         mfcc_list = []
         wavlm_list = []
+        embedding_list = []
 
-        MIN_LEN = min(len(poses), int(len(audio_raw) * 60 / 16000), len(mfcc_raw))
+        # MIN_LEN = min(len(poses), int(len(audio_raw) * 60 / 16000), len(mfcc_raw))
+        # MIN_LEN = min(len(poses), int(len(audio_raw) * 60 / 16000))
+        total_frames = min(len(poses), int(len(audio_raw) * 60 / 16000))
 
         num_subdivision = math.floor(
-            (MIN_LEN - self.n_poses)
+            (total_frames - self.n_poses)
             / self.subdivision_stride)  # floor((K - (N+M)) / S) + 1
 
         for i in range(num_subdivision):
@@ -119,18 +122,24 @@ class DeepGesturePreprocessor:
             sample_audio = audio_raw[audio_start:audio_end]
             sample_wavlm = wav2wavlm(args, self.wavmodel, sample_audio)
 
+            # embedding
+            embedding = embedding_raw[start_idx:fin_idx]
 
             gesture_list.append(sample_skeletons)
             mfcc_list.append(sample_mfcc)
             wavlm_list.append(sample_wavlm)
             audio_raw_list.append(sample_audio)
             emotion_list.append(style_raw)
+            embedding_list.append(embedding)
 
         n_items = 0
-        for gestures, emotions, speeches in zip(gesture_list, emotion_list, wavlm_list):
+        for gestures, emotions, speeches, embeddings in zip(gesture_list, emotion_list, wavlm_list, embedding_list):
             gestures_np = np.vstack(gestures).astype(np.float32)
             emotions_np = np.asarray(emotions).astype(np.float32)
             speeches_np = np.asarray(speeches).astype(np.float32)
+            text_np = np.asarray(embeddings).astype(np.float32)
+
+            print("text_np", text_np.shape, "speeches_np", speeches_np.shape)
 
             global_key = f'{n_items}_{key}'
 
@@ -142,6 +151,7 @@ class DeepGesturePreprocessor:
                 g_h5.create_dataset("gesture", data=gestures_np, dtype=np.float32)
                 g_h5.create_dataset("emotion", data=emotions_np, dtype=np.float32)
                 g_h5.create_dataset("speech", data=speeches_np, dtype=np.float32)
+                g_h5.create_dataset("text", data=text_np, dtype=np.float32)
 
             n_items += 1
 
@@ -183,14 +193,14 @@ if __name__ == '__main__':
     processor = DeepGesturePreprocessor(args, data_train, dataset_train, args.n_poses, args.subdivision_stride, args.motion_resampling_framerate, device)
     processor.run()
 
-    data_valid_path = os.path.join(target, 'valid')
-    data_valid_h5_name = 'datasets_valid.h5'
-    data_valid = os.path.join(data_valid_path, data_valid_h5_name)
-
-    dataset_valid_h5_name = 'datasets_valid.h5'
-    dataset_valid = os.path.join(dataset_path, dataset_valid_h5_name)
-
-    processor = DeepGesturePreprocessor(args, data_valid, dataset_valid, args.n_poses, args.subdivision_stride, args.motion_resampling_framerate, device)
-    processor.run()
+    # data_valid_path = os.path.join(target, 'valid')
+    # data_valid_h5_name = 'datasets_valid.h5'
+    # data_valid = os.path.join(data_valid_path, data_valid_h5_name)
+    #
+    # dataset_valid_h5_name = 'datasets_valid.h5'
+    # dataset_valid = os.path.join(dataset_path, dataset_valid_h5_name)
+    #
+    # processor = DeepGesturePreprocessor(args, data_valid, dataset_valid, args.n_poses, args.subdivision_stride, args.motion_resampling_framerate, device)
+    # processor.run()
 
     # processor.sample_read()

@@ -1,11 +1,10 @@
 import os
 import sys
 import nltk
-from contractions import fix
 import argparse
 from pprint import pprint
 from gensim.models import KeyedVectors
-
+import contractions
 nltk.download('punkt')
 nltk.download('punkt_tab')
 
@@ -19,51 +18,55 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+# def expand_contractions_nltk(text, word2vec_model, file):
+#     # Expand contractions
+#     text_fixed = contractions.fix(text)
+#
+#     tokens = nltk.word_tokenize(text_fixed)
+#
+#     # Rechecks
+#     for token in tokens:
+#         try:
+#             word2vec_model.get_vector(token)
+#         except KeyError:
+#             with open("./data/train/log.txt", "a") as f:
+#                 f.write(f"Inside file {file}, Token {token} not found in word2vec model\n")
+#             print(f"Token {token} not found in word2vec model")
+#
+#     # Rejoin tokens into a sentence
+#     expanded_text = ' '.join(text_fixed)
+#     return expanded_text
+#
+#
+# def process_txt_contractions(file, word2vec_model):
+#     raw_text = ""
+#     with open(file, "r") as f:
+#         raw_text = f.readlines()
+#
+#     sentence_result = expand_contractions_nltk(raw_text, word2vec_model, file)
+#     return sentence_result
 
-def expand_contractions_nltk(text, word2vec_model, file):
-    # Tokenize the text
-    tokens = nltk.word_tokenize(text)
+def process_txt_contractions(file, word2vec_model):
+    with open(file, "r") as f:
+        raw_text = f.readlines()
 
     # Expand contractions
-    expanded_tokens = [fix(token) for token in tokens]
+    text_fixed = contractions.fix(''.join(raw_text))  # Join lines into a single string for contraction expansion
 
-    def fix_not(token):
-        # Check if the token is "n't" and return its expanded form
-        return "not" if token == "n't" else token
+    tokens = nltk.word_tokenize(text_fixed)
 
-    expanded_tokens_fixed = [fix_not(token) for token in expanded_tokens]
-
-    # Rechecks
-    for token in expanded_tokens_fixed:
+    # Recheck tokens in word2vec model
+    for token in tokens:
         try:
             word2vec_model.get_vector(token)
         except KeyError:
-            with open("./data/train/log.txt", "a") as f:
-                f.write(f"Inside file {file}, Token {token} not found in word2vec model\n")
+            with open("./data/train/log.txt", "a") as log_file:
+                log_file.write(f"Inside file {file}, Token {token} not found in word2vec model\n")
             print(f"Token {token} not found in word2vec model")
 
     # Rejoin tokens into a sentence
-    expanded_text = ' '.join(expanded_tokens_fixed)
+    expanded_text = ' '.join(tokens)  # Fix this to join the tokens, not the original text
     return expanded_text
-
-
-def process_txt_contractions(file, word2vec_model):
-    sentence_list = []
-    with open(file, "r") as f:
-        lines = f.readlines()
-        for line in lines:
-            raw_text = line.strip()
-            sentences = nltk.sent_tokenize(raw_text)
-
-            for sentence in sentences:
-                sentence_list.append(sentence)
-
-    sentence_result = [expand_contractions_nltk(sen, word2vec_model, file) for sen in sentence_list]
-    return " ".join(sentence_result)
-    # for sentence in sentence_list:
-    #     print("Original:", sentence)
-    #     expanded_text = expand_contractions_nltk(sentence)
-    #     print("Expanded:", expanded_text, "\n\n")
 
 
 if __name__ == '__main__':

@@ -89,7 +89,7 @@ def load_csv_aligned(file):
     return sentence
 
 
-def word2vec(sentence, word2vec_model, n_frames, fps, tsv_file):
+def word2vec(sentence, word2vec_model, n_frames, fps, csv_file):
     tensor_vec = np.zeros([n_frames, 300])
 
     for start, end, word in sentence:
@@ -101,9 +101,10 @@ def word2vec(sentence, word2vec_model, n_frames, fps, tsv_file):
             vector = word2vec_model.get_vector(word.lower())
 
         except KeyError:
-            with open("./data/train/log.txt", "a") as f:
-                f.write(f"Inside file {file}, Token {word} not found in word2vec model\n")
+            with open("./log.txt", "a") as f:
+                f.write(f"Inside file {csv_file}, Token {word} not found in word2vec model\n")
             print(f"Token {word} not found in word2vec model")
+            vector = np.zeros(300)
 
             # Handle missing words
             # print(f"Keyword '{word}' not found in {tsv_file}")
@@ -127,7 +128,6 @@ if __name__ == '__main__':
     '''
     python word2vec.py --src=./data/train  --dest=./processed/train/embedding --word2vec_model=./fasttext/crawl-300d-2M.vec
     '''
-
     args = parse_args()
     pprint(args)
 
@@ -136,9 +136,7 @@ if __name__ == '__main__':
     files = os.listdir(args.src)
 
     wav_files = [file for file in files if file.endswith(".wav")]
-    tsv_files = [file for file in files if file.endswith(".tsv")]
     csv_files = [file for file in files if file.endswith(".csv")]
-    tgd_files = [file for file in files if file.endswith(".TextGrid")]
     fps = 20
 
     # assert len(wav_files) == len(csv_files)
@@ -160,10 +158,11 @@ if __name__ == '__main__':
         # align_sentence = load_tsv_aligned(tsv_file)
 
         csv_file = os.path.join(args.src, f"{wav_file[:-4]}.csv")
-        align_sentence = load_tsv_aligned(csv_file)
+        align_sentence = load_csv_aligned(csv_file)
 
         n_frames = int(audio_length_seconds * fps)
         print(f"Audio length: {audio_length_seconds} -> {audio_length_seconds * fps}")
-        sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps, tsv_file)
+        sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps, csv_file)
         print(np.shape(sentence_vec), " -> saving ", f"{wav_file[:-4]}.npy")
         np.save(os.path.join(args.dest, f"{wav_file[:-4]}.npy"), sentence_vec)
+        # np.savez_compressed

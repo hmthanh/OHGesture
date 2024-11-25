@@ -1,4 +1,5 @@
 import sys
+
 [sys.path.append(i) for i in ['.', '..', '../model', '../train']]
 
 import pdb
@@ -13,17 +14,18 @@ from configs.parse_args import parse_args
 import os
 
 from utils.model_util import create_gaussian_diffusion
-from training_loop import TrainLoop
-from model.mdm import MDM
-
-
+from deepgesture_training_loop import DeepGestureTrainLoop
+from model.deepgesture import DeepGesture
 
 logging.getLogger().setLevel(logging.INFO)
 
 
 def create_model_and_diffusion(args):
-    model = MDM(modeltype='', njoints=1141, nfeats=1, cond_mode='cross_local_attention3_style1', action_emb='tensor', audio_feat=args.audio_feat,
-                arch='trans_enc', latent_dim=256, n_seed=8, cond_mask_prob=0.1)
+    model = DeepGesture(modeltype='', njoints=1141, nfeats=1,
+                        cond_mode='cross_local_attention3_style1', action_emb='tensor',
+                        audio_feat=args.audio_feat,
+                        arch='trans_enc', latent_dim=256,
+                        n_seed=8, cond_mask_prob=0.1)
     diffusion = create_gaussian_diffusion()
     return model, diffusion
 
@@ -31,9 +33,9 @@ def create_model_and_diffusion(args):
 def main(args, device):
     # ~~~~~~~~~~~~~~~ Train ~~~~~~~~~~~~~~~
     train_dataset = DeepGestureDataset(args.train_h5,
-                                   n_poses=args.n_poses,
-                                   subdivision_stride=args.subdivision_stride,
-                                   pose_resampling_fps=args.motion_resampling_framerate)
+                                       n_poses=args.n_poses,
+                                       subdivision_stride=args.subdivision_stride,
+                                       pose_resampling_fps=args.motion_resampling_framerate)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
                               shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
 
@@ -54,7 +56,7 @@ def main(args, device):
     model, diffusion = create_model_and_diffusion(args)
 
     model.to(device)
-    train_loop = TrainLoop(args, model, diffusion, device, data=train_loader)
+    train_loop = DeepGestureTrainLoop(args, model, diffusion, device, data=train_loader)
     train_loop.run_loop()
 
 

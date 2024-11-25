@@ -27,8 +27,9 @@ class DeepGestureDataset(Dataset):
             gesture = h5[self.dataset_keys[index]]["gesture"][:]
             emotion = h5[self.dataset_keys[index]]["emotion"][:]
             speech = h5[self.dataset_keys[index]]["speech"][:]
+            text = h5[self.dataset_keys[index]]["text"][:]
 
-            return gesture, emotion, speech
+            return gesture, emotion, speech, text
 
 
 if __name__ == '__main__':
@@ -58,23 +59,24 @@ if __name__ == '__main__':
 
     args = EasyDict(config)
 
-    # train_dataset = DeepGestureDataset(args.train_h5,
+    train_dataset = DeepGestureDataset(args.train_h5,
+                                       n_poses=args.n_poses,
+                                       subdivision_stride=args.subdivision_stride,
+                                       pose_resampling_fps=args.motion_resampling_framerate)
+    # val_dataset = DeepGestureDataset(args.valid_h5,
     #                                    n_poses=args.n_poses,
     #                                    subdivision_stride=args.subdivision_stride,
     #                                    pose_resampling_fps=args.motion_resampling_framerate)
-    # # val_dataset = DeepGestureDataset(args.valid_h5,
-    # #                                    n_poses=args.n_poses,
-    # #                                    subdivision_stride=args.subdivision_stride,
-    # #                                    pose_resampling_fps=args.motion_resampling_framerate)
-    # train_loader = DataLoader(dataset=train_dataset, batch_size=128,
-    #                           shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
-    # #
-    # print(len(train_loader))
-    # for batch_i, batch in enumerate(train_loader, 0):
-    #     # target_vec, aux, style, audio, mfcc, wavlm = batch     # [128, 88, 1141], -,  [128, 6], [128, 70400], [128, 88, 13]
-    #     gesture, emotion, speech = batch
-    #     print(batch_i)
-    #     # pdb.set_trace()
-    #     print(gesture.shape)  # torch.Size([128, 88, 1141])
-    #     print(emotion.shape)  # torch.Size([128, 6])
-    #     print(speech.shape)  # torch.Size([128, 88, 1024])
+    train_loader = DataLoader(dataset=train_dataset, batch_size=128,
+                              shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
+    #
+    print(len(train_loader))
+    for batch_i, batch in enumerate(train_loader, 0):
+        # target_vec, aux, style, audio, mfcc, wavlm = batch     # [128, 88, 1141], -,  [128, 6], [128, 70400], [128, 88, 13]
+        gesture, emotion, speech, embedding = batch
+        print(batch_i)
+        # pdb.set_trace()
+        print(gesture.shape)  # torch.Size([128, 88, 1141])
+        print(emotion.shape)  # torch.Size([128, 6])
+        print(speech.shape)  # torch.Size([128, 88, 1024])
+        print(embedding.shape)  # torch.Size([128, 88, 1024])

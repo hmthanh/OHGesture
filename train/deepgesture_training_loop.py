@@ -27,7 +27,7 @@ from process_zeggs_bvh import pose2bvh
 INITIAL_LOG_LOSS_SCALE = 20.0
 
 
-class TrainLoop:
+class DeepGestureTrainLoop:
     def __init__(self, args, model, diffusion, device, data=None):
         self.args = args
         self.data = data
