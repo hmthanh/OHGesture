@@ -151,3 +151,4 @@ ZeroEGGSProcessing/fasttext/crawl-300d-2M.vec
 *.wav
 *.lab
 *.txt
+*.csv
