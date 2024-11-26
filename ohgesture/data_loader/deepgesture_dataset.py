@@ -67,16 +67,15 @@ if __name__ == '__main__':
     #                                    n_poses=args.n_poses,
     #                                    subdivision_stride=args.subdivision_stride,
     #                                    pose_resampling_fps=args.motion_resampling_framerate)
-    train_loader = DataLoader(dataset=train_dataset, batch_size=128,
+    train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
                               shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
-    #
-    print(len(train_loader))
+
+    print("Total train loader: ", len(train_loader))
     for batch_i, batch in enumerate(train_loader, 0):
-        # target_vec, aux, style, audio, mfcc, wavlm = batch     # [128, 88, 1141], -,  [128, 6], [128, 70400], [128, 88, 13]
         gesture, emotion, speech, embedding = batch
-        print(batch_i)
+        # print(batch_i)
         # pdb.set_trace()
-        print(gesture.shape)  # torch.Size([128, 88, 1141])
-        print(emotion.shape)  # torch.Size([128, 6])
-        print(speech.shape)  # torch.Size([128, 88, 1024])
-        print(embedding.shape)  # torch.Size([128, 88, 1024])
+        print("gesture", gesture.shape)  # gesture torch.Size([1152, 88, 1141])
+        print("emotion", emotion.shape)  # emotion torch.Size([1152, 6])
+        print("speech", speech.shape)  # speech torch.Size([1152, 88, 1024])
+        print("embedding", embedding.shape)  # embedding torch.Size([1152, 88, 300])

@@ -22,7 +22,7 @@ n_poses: 88     # 88 -> 20*60
 n_codes: 30
 motion_resampling_framerate: 20     # 20 -> 60
 subdivision_stride: 10      # 10 -> 200
-batch_size: 300       # 384 -> 32
+batch_size: 1152       # 384 -> 32
 loader_workers: 2
 epochs: 2 # 500     # 500 -> 10
 save_per_epochs: 25     # 20 -> 1
