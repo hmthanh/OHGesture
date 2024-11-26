@@ -584,6 +584,7 @@ if __name__ == '__main__':
     model_kwargs_['y']['mask'] = (torch.zeros([1, 1, 1, n_frames]) < 1)     # [..., n_seed:]
     model_kwargs_['y']['audio'] = torch.randn(2, 88, 13).permute(1, 0, 2)       # [n_seed:, ...]
     model_kwargs_['y']['style'] = torch.randn(2, 6)
+    model_kwargs_['y']['text'] = torch.randn(2, 88, 300)
     model_kwargs_['y']['mask_local'] = torch.ones(2, 88).bool()
     model_kwargs_['y']['seed'] = x[..., 0:n_seed]
     y = model(x, t, model_kwargs_['y'])
