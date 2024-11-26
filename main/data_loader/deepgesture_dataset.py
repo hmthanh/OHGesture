@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 import sys
 import os
 import h5py
+import numpy as np
 
 
 class DeepGestureDataset(Dataset):
@@ -30,6 +31,16 @@ class DeepGestureDataset(Dataset):
             text = h5[self.dataset_keys[index]]["text"][:]
 
             return gesture, emotion, speech, text
+
+
+class RandomSampler(torch.utils.data.Sampler):
+    def __init__(self, min_id, max_id):
+        self.min_id = min_id
+        self.max_id = max_id
+
+    def __iter__(self):
+        while True:
+            yield np.random.randint(self.min_id, self.max_id)
 
 
 if __name__ == '__main__':

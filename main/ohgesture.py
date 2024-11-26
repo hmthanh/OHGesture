@@ -15,7 +15,7 @@ from configs.parse_args import parse_args
 from data_loader.deepgesture_dataset import DeepGestureDataset
 from utils.model_util import create_gaussian_diffusion
 from deepgesture_training_loop import DeepGestureTrainLoop
-from ohgesture.deepgesture import DeepGesture
+from deepgesture import DeepGesture
 
 logging.getLogger().setLevel(logging.INFO)
 

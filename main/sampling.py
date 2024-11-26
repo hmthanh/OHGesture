@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 from mfcc import MFCC
 from ZEGGS.process_zeggs_bvh import pose2bvh, quat  # '../process'
-from model.mdm import MDM
+from deepgesture import DeepGesture
 from wavlm.WavLM import SpeechWavLM, SpeechWavLMConfig
 
 style2onehot = {
@@ -50,7 +50,7 @@ def wav2wavlm(args, model, wav_input_16khz, device=torch.device('cuda:0')):
 
 
 def create_model_and_diffusion(args):
-    model = MDM(modeltype='', njoints=1141, nfeats=1, translation=True, pose_rep='rot6d', glob=True,
+    model = DeepGesture(modeltype='', njoints=1141, nfeats=1, translation=True, pose_rep='rot6d', glob=True,
                 glob_rot=True, cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor', audio_feat=args.audio_feat,
                 arch='trans_enc', latent_dim=256, n_seed=8)  # trans_enc, trans_dec, gru, mytrans_enc
     diffusion = create_gaussian_diffusion()
@@ -388,11 +388,10 @@ if __name__ == '__main__':
     """
     python sampling.py --config=./configs/OHGesture.yml --gpu mps --model_path="./model000450000.pt" --speech_path="./003_Neutral_2_x_1_0.wav"
     """
-
     parser = argparse.ArgumentParser(description='OHGesture')
     parser.add_argument('--config', default='configs/OHGesture.yml')
     parser.add_argument('--gpu', type=str, default='cuda:0')
-    parser.add_argument('--model_path', type=str, default='model.pt')
+    parser.add_argument('--model_path', type=str, default='./model.pt')
     parser.add_argument('--speech_path', type=str, default='003_Neutral_2_x_1_0.wav')
     parser.add_argument('--max_len', type=int, default=0)
     args = parser.parse_args()
