@@ -141,7 +141,7 @@ class DeepGestureTrainLoop:
     def run_loop(self):
 
         for epoch in range(self.num_epochs):
-            # print(f'Starting epoch {epoch}')
+            print(f'Starting epoch {epoch}')
             # for _ in tqdm(range(10)):     # 4 steps, batch size, chmod 777
             for batch in tqdm(self.data):
                 if not (not self.lr_anneal_steps or self.step + self.resume_step < self.lr_anneal_steps):

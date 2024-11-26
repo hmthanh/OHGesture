@@ -357,14 +357,28 @@ class DeepGesture(nn.Module):
         output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
         return output
 
-
     @staticmethod
     def apply_rotary(x, sinusoidal_pos):
+        """
+        Applies rotary positional embeddings to the input tensor.
+
+        Args:
+            x (Tensor): Input tensor with shape (..., dim).
+            sinusoidal_pos (Tuple[Tensor, Tensor]): Sinusoidal positional embeddings
+                consisting of sine and cosine tensors.
+
+        Returns:
+            Tensor: Tensor with rotary embeddings applied.
+        """
         sin, cos = sinusoidal_pos
         x1, x2 = x[..., 0::2], x[..., 1::2]
-        # 如果是旋转query key的话，下面这个直接cat就行，因为要进行矩阵乘法，最终会在这个维度求和。（只要保持query和key的最后一个dim的每一个位置对应上就可以）
-        # torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1)
-        # 如果是旋转value的话，下面这个stack后再flatten才可以，因为训练好的模型最后一个dim是两两之间交替的。
+
+        # For rotating queries/keys: The result of the operation can directly concatenate
+        # since a matrix multiplication will sum across the last dimension.
+        # e.g., torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1)
+
+        # For rotating values: Perform stacking followed by flattening because
+        # the trained model expects alternating positions along the last dimension.
         return torch.stack([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1).flatten(-2, -1)
 
 
@@ -558,12 +572,11 @@ if __name__ == '__main__':
     python mdm.py
     '''
     n_frames = 240
-
     n_seed = 8
 
-    model = MDM(modeltype='', njoints=1140, nfeats=1, cond_mode = 'cross_local_attention5_style1', action_emb='tensor', audio_feat='mfcc',
-                arch='mytrans_enc', latent_dim=256, n_seed=n_seed, cond_mask_prob=0.1)
-
+    model = DeepGesture(modeltype='', njoints=1140, nfeats=1, cond_mode='cross_local_attention5_style1', action_emb='tensor', audio_feat='mfcc',
+                        arch='trans_enc', latent_dim=256, n_seed=n_seed, cond_mask_prob=0.1)
+    # mytrans_enc
     x = torch.randn(2, 1140, 1, 88)
     t = torch.tensor([12, 85])
 

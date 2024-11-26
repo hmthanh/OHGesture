@@ -17,7 +17,6 @@ from training_loop import TrainLoop
 from model.mdm import MDM
 
 
-
 logging.getLogger().setLevel(logging.INFO)
 
 
