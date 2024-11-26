@@ -4,8 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model.local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
-from model.local_attention.local_attention import LocalAttention
+from local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
+from local_attention.local_attention import LocalAttention
+
 
 class DeepGesture(nn.Module):
     def __init__(self, modeltype, njoints, nfeats,
@@ -48,7 +49,7 @@ class DeepGesture(nn.Module):
             self.audio_feat_dim = 13
         elif self.audio_feat == 'wavlm':
             print('USE WAVLM')
-            self.audio_feat_dim = 64        # Linear 1024 -> 64
+            self.audio_feat_dim = 64  # Linear 1024 -> 64
             self.WavEncoder = WavEncoder()
 
         self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
@@ -67,12 +68,11 @@ class DeepGesture(nn.Module):
             self.embed_positions = RoFormerSinusoidalPositionalEmbedding(1536, self.latent_dim)
 
             seqTransEncoderLayer = TransformerEncoderLayer(d_model=self.latent_dim,
-                                                              nhead=self.num_heads,
-                                                              dim_feedforward=self.ff_size,
-                                                              dropout=self.dropout,
-                                                              activation=self.activation)
-            self.seqTransEncoder = TransformerEncoder(seqTransEncoderLayer,
-                                                         num_layers=self.num_layers)
+                                                           nhead=self.num_heads,
+                                                           dim_feedforward=self.ff_size,
+                                                           dropout=self.dropout,
+                                                           activation=self.activation)
+            self.seqTransEncoder = TransformerEncoder(seqTransEncoderLayer, num_layers=self.num_layers)
 
         elif self.arch == 'trans_enc':
             print("TRANS_ENC init")
@@ -82,8 +82,7 @@ class DeepGesture(nn.Module):
                                                               dropout=self.dropout,
                                                               activation=self.activation)
 
-            self.seqTransEncoder = nn.TransformerEncoder(seqTransEncoderLayer,
-                                                         num_layers=self.num_layers)
+            self.seqTransEncoder = nn.TransformerEncoder(seqTransEncoderLayer, num_layers=self.num_layers)
         elif self.arch == 'trans_dec':
             print("TRANS_DEC init")
             seqTransDecoderLayer = nn.TransformerDecoderLayer(d_model=self.latent_dim,
@@ -91,8 +90,7 @@ class DeepGesture(nn.Module):
                                                               dim_feedforward=self.ff_size,
                                                               dropout=self.dropout,
                                                               activation=activation)
-            self.seqTransDecoder = nn.TransformerDecoder(seqTransDecoderLayer,
-                                                         num_layers=self.num_layers)
+            self.seqTransDecoder = nn.TransformerDecoder(seqTransDecoderLayer, num_layers=self.num_layers)
         elif self.arch == 'gru':
             print("GRU init")
             self.gru = nn.GRU(self.latent_dim, self.latent_dim, num_layers=self.num_layers, batch_first=False)
@@ -133,7 +131,7 @@ class DeepGesture(nn.Module):
                 window_size=11,  # window size. 512 is optimal, but 256 or 128 yields good enough results
                 causal=True,  # auto-regressive or not
                 look_backward=1,  # each window looks at the window before
-                look_forward=0,     # for non-auto-regressive case, will default to 1, so each window looks at the window before and after it
+                look_forward=0,  # for non-auto-regressive case, will default to 1, so each window looks at the window before and after it
                 dropout=0.1,  # post-attention dropout
                 exact_windowsize=False
                 # if this is set to true, in the causal setting, each query will see at maximum the number of keys equal to the window size
@@ -163,28 +161,28 @@ class DeepGesture(nn.Module):
         else:
             return cond
 
-    def forward(self, x, timesteps, y=None,uncond_info=False):
+    def forward(self, x, timesteps, y=None, uncond_info=False):
         """
         x: [batch_size, njoints, nfeats, max_frames], denoted x_t in the paper
         timesteps: [batch_size] (int)
         seed: [batch_size, njoints, nfeats]
         """
 
-        bs, njoints, nfeats, nframes = x.shape      # 64, 251, 1, 196
+        bs, njoints, nfeats, nframes = x.shape  # 64, 251, 1, 196
         emb_t = self.embed_timestep(timesteps)  # [1, bs, d], (1, 2, 256)
 
-        #force_mask = y.get('uncond', False)  # False
-        force_mask=uncond_info
-        
+        # force_mask = y.get('uncond', False)  # False
+        force_mask = uncond_info
+
         if 'style1' in self.cond_mode:
-            embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask)       # (bs, 64)
+            embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask)  # (bs, 64)
             if self.n_seed != 0:
-                embed_text = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))       # (bs, 256-64)
+                embed_text = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # (bs, 256-64)
                 emb_1 = torch.cat((embed_style, embed_text), dim=1)
             else:
                 emb_1 = embed_style
         elif self.n_seed != 0:
-            emb_1 = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))     # z_tk
+            emb_1 = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
 
         if self.audio_feat == 'wavlm':
             enc_text = self.WavEncoder(y['audio']).permute(1, 0, 2)
@@ -257,18 +255,18 @@ class DeepGesture(nn.Module):
                 output = xseq.permute(1, 0, 2)
 
             else:
-                x = x.reshape(bs, njoints*nfeats, 1, nframes)      # [2, 135, 1, 240]
+                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
                 # self-attention
-                x_ = self.input_process(x)       # [2, 135, 1, 240] -> [240, 2, 256]
+                x_ = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 256]
                 xseq = torch.cat((emb_1 + emb_t, x_), axis=0)  # [seqlen+1, bs, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
-                xseq = xseq.permute(1, 0, 2)        # (bs, len, dim)
+                xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
                 xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
-                xseq = xseq.permute(0, 2, 1, 3)     # Need (2, 8, 2048, 64)
-                xseq = xseq.reshape(bs*self.num_head, nframes + 1, -1)
-                pos_emb = self.rel_pos(xseq)        #  (89, 32)
+                xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
+                xseq = xseq.reshape(bs * self.num_head, nframes + 1, -1)
+                pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
                 xseq_rpe = xseq.reshape(bs, self.num_head, nframes + 1, -1)
-                xseq = xseq_rpe.permute(0, 2, 1, 3)       # [seqlen+1, bs, d]
+                xseq = xseq_rpe.permute(0, 2, 1, 3)  # [seqlen+1, bs, d]
                 xseq = xseq.view(bs, nframes + 1, -1)
                 xseq = xseq.permute(1, 0, 2)
                 if 'cross_local_attention2' in self.cond_mode:
@@ -278,10 +276,10 @@ class DeepGesture(nn.Module):
 
                 # local-cross-attention
                 packed_shape = [torch.Size([bs, self.num_head])]
-                xseq = torch.cat((xseq, enc_text), axis=2)  #[bs, d+joints*feat, 1, #frames], (240, 2, 32)
+                xseq = torch.cat((xseq, enc_text), axis=2)  # [bs, d+joints*feat, 1, #frames], (240, 2, 32)
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)       # (bs, 64) -> (len, bs, 64)
-                xseq = torch.cat((embed_style_2, xseq), axis=2)     # (seq, bs, dim)
+                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (bs, 64) -> (len, bs, 64)
+                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, bs, dim)
                 xseq = self.input_process2(xseq)
                 xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
                 xseq = xseq.view(bs, nframes, self.num_head, -1)
@@ -289,17 +287,17 @@ class DeepGesture(nn.Module):
                 xseq = xseq.reshape(bs * self.num_head, nframes, -1)
                 pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
-                xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape, mask=y['mask_local'])     # (2, 8, 2048, 64)
-                xseq = xseq.permute(0, 2, 1, 3)     # (bs, len, 8, 64)
+                xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape, mask=y['mask_local'])  # (2, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # (bs, len, 8, 64)
                 xseq = xseq.reshape(bs, nframes, -1)
                 output = xseq.permute(1, 0, 2)
 
         else:
             if self.arch == 'trans_enc' or self.arch == 'trans_dec' or self.arch == 'conformers_enc' or self.arch == 'mytrans_enc':
-                x_reshaped = x.reshape(bs, njoints*nfeats, 1, nframes)      # [2, 135, 1, 240]
+                x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
                 enc_text_gru = enc_text.permute(1, 2, 0)  # (240, 2, 32) -> (2, 32, 240)
                 enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
-                x = torch.cat((x_reshaped, enc_text_gru), axis=1)  #[bs, d+joints*feat, 1, #frames]
+                x = torch.cat((x_reshaped, enc_text_gru), axis=1)  # [bs, d+joints*feat, 1, #frames]
                 if 'style2' in self.cond_mode:
                     embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask).repeat(nframes, 1, 1)  # (#frames, bs, 64)
                     embed_style = embed_style.unsqueeze(2)
@@ -307,17 +305,17 @@ class DeepGesture(nn.Module):
                     x = torch.cat((x, embed_style), axis=1)  # [bs, d+joints*feat, 1, #frames]
 
             if self.arch == 'gru':
-                x_reshaped = x.reshape(bs, njoints*nfeats, 1, nframes)      # [2, 135, 1, 240]
-                emb_gru = emb.repeat(nframes, 1, 1)     #[#frames, bs, d]
+                x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
+                emb_gru = emb.repeat(nframes, 1, 1)  # [#frames, bs, d]
 
-                enc_text_gru = enc_text.permute(1, 2, 0)        # (240, 2, 32) -> (2, 32, 240)
+                enc_text_gru = enc_text.permute(1, 2, 0)  # (240, 2, 32) -> (2, 32, 240)
                 enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
 
-                emb_gru = emb_gru.permute(1, 2, 0)      #[bs, d, #frames]
-                emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  #[bs, d, 1, #frames]
-                x = torch.cat((x_reshaped, emb_gru, enc_text_gru), axis=1)  #[bs, d+joints*feat, 1, #frames]
+                emb_gru = emb_gru.permute(1, 2, 0)  # [bs, d, #frames]
+                emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  # [bs, d, 1, #frames]
+                x = torch.cat((x_reshaped, emb_gru, enc_text_gru), axis=1)  # [bs, d+joints*feat, 1, #frames]
 
-            x = self.input_process(x)       # [2, 135, 1, 240] -> [240, 2, 224]
+            x = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 224]
 
             if self.arch == 'trans_enc':
                 # adding the timestep embed
@@ -334,7 +332,7 @@ class DeepGesture(nn.Module):
                     xseq = x
                 xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
                 if self.emb_trans_dec:
-                    output = self.seqTransDecoder(tgt=xseq, memory=emb)[1:] # [seqlen, bs, d] # FIXME - maybe add a causal mask
+                    output = self.seqTransDecoder(tgt=xseq, memory=emb)[1:]  # [seqlen, bs, d] # FIXME - maybe add a causal mask
                 else:
                     output = self.seqTransDecoder(tgt=xseq, memory=emb)
 
@@ -359,28 +357,13 @@ class DeepGesture(nn.Module):
 
     @staticmethod
     def apply_rotary(x, sinusoidal_pos):
-        """
-        Applies rotary positional embeddings to the input tensor.
-
-        Args:
-            x (Tensor): Input tensor with shape (..., dim).
-            sinusoidal_pos (Tuple[Tensor, Tensor]): Sinusoidal positional embeddings
-                consisting of sine and cosine tensors.
-
-        Returns:
-            Tensor: Tensor with rotary embeddings applied.
-        """
         sin, cos = sinusoidal_pos
         x1, x2 = x[..., 0::2], x[..., 1::2]
 
         # For rotating queries/keys: The result of the operation can directly concatenate
         # since a matrix multiplication will sum across the last dimension.
         # e.g., torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1)
-
-        # For rotating values: Perform stacking followed by flattening because
-        # the trained model expects alternating positions along the last dimension.
         return torch.stack([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1).flatten(-2, -1)
-
 
 
 class PositionalEncoding(nn.Module):
@@ -388,8 +371,8 @@ class PositionalEncoding(nn.Module):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
-        pe = torch.zeros(max_len, d_model)      # (5000, 128)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)     # (5000, 1)
+        pe = torch.zeros(max_len, d_model)  # (5000, 128)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)  # (5000, 1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
@@ -408,7 +391,7 @@ class RoFormerSinusoidalPositionalEmbedding(nn.Embedding):
     """This module produces sinusoidal positional embeddings of any length."""
 
     def __init__(
-        self, num_positions: int, embedding_dim: int
+            self, num_positions: int, embedding_dim: int
     ):
         super().__init__(num_positions, embedding_dim)
         self.weight = self._init_weight(self.weight)
@@ -474,7 +457,7 @@ class InputProcess(nn.Module):
 
     def forward(self, x):
         bs, njoints, nfeats, nframes = x.shape
-        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints*nfeats)
+        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
 
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
             x = self.poseEmbedding(x)  # [seqlen, bs, d]
@@ -571,8 +554,10 @@ if __name__ == '__main__':
     cd ./main/model
     python mdm.py
     '''
-    n_frames = 240
+    n_frames = 88
     n_seed = 8
+    text_dim = 300
+    batch_size = 1152
 
     model = DeepGesture(modeltype='', njoints=1140, nfeats=1, cond_mode='cross_local_attention5_style1', action_emb='tensor', audio_feat='mfcc',
                         arch='trans_enc', latent_dim=256, n_seed=n_seed, cond_mask_prob=0.1)
@@ -581,11 +566,11 @@ if __name__ == '__main__':
     t = torch.tensor([12, 85])
 
     model_kwargs_ = {'y': {}}
-    model_kwargs_['y']['mask'] = (torch.zeros([1, 1, 1, n_frames]) < 1)     # [..., n_seed:]
-    model_kwargs_['y']['audio'] = torch.randn(2, 88, 13).permute(1, 0, 2)       # [n_seed:, ...]
-    model_kwargs_['y']['style'] = torch.randn(2, 6)
-    model_kwargs_['y']['text'] = torch.randn(2, 88, 300)
-    model_kwargs_['y']['mask_local'] = torch.ones(2, 88).bool()
+    model_kwargs_['y']['mask'] = (torch.zeros([1, 1, 1, n_frames]) < 1)  # [..., n_seed:]
+    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13).permute(1, 0, 2)  # [n_seed:, ...]
+    model_kwargs_['y']['style'] = torch.randn(batch_size, 6)
+    model_kwargs_['y']['text'] = torch.randn(batch_size, n_frames, text_dim)
+    model_kwargs_['y']['mask_local'] = torch.ones(batch_size, n_frames).bool()
     model_kwargs_['y']['seed'] = x[..., 0:n_seed]
     y = model(x, t, model_kwargs_['y'])
     print(y.shape)

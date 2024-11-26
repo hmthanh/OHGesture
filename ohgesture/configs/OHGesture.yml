@@ -18,14 +18,20 @@ gesture_std: "../ZeroEGGSProcessing/processed/std.npz"
 # wavlm_model_path: './WavLM/WavLM-Large.pt'
 wavlm_model_path: '/Users/thanh/OpenHuman/OHGesture/diffuse_style_gesture/WavLM/WavLM-Large.pt'
 
+# --------- FEATURE ---------
+# feature
 n_poses: 88     # 88 -> 20*60
 n_codes: 30
 motion_resampling_framerate: 20     # 20 -> 60
 subdivision_stride: 10      # 10 -> 200
 batch_size: 1152       # 384 -> 32
+
+# --------- FEATURE ---------
 loader_workers: 2
 epochs: 2 # 500     # 500 -> 10
 save_per_epochs: 25     # 20 -> 1
+
+
 model_save_path: "./output/train_OHGesture"
 name: "OHGesture"
 log_interval: 50
@@ -37,5 +43,7 @@ audio_feat: "wavlm"     # wav encoder; mfcc; wavlm
 lr: 0.00003     # 0.00003 ->
 betas: [0.5, 0.999]
 milestones: [100, 200]
+
+# --------- Hyperparameters ---------
 gamma: 0.1
 

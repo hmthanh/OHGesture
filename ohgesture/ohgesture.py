@@ -3,19 +3,19 @@ import sys
 [sys.path.append(i) for i in ['.', '..', '../model', '../train']]
 
 import pdb
+import os
 import logging
-from torch.utils.data import DataLoader
-from data_loader.deepgesture_dataset import DeepGestureDataset
 import torch
 import yaml
+from torch.utils.data import DataLoader
 from pprint import pprint
 from easydict import EasyDict
-from configs.parse_args import parse_args
-import os
 
+from configs.parse_args import parse_args
+from data_loader.deepgesture_dataset import DeepGestureDataset
 from utils.model_util import create_gaussian_diffusion
 from deepgesture_training_loop import DeepGestureTrainLoop
-from model.deepgesture import DeepGesture
+from ohgesture.deepgesture import DeepGesture
 
 logging.getLogger().setLevel(logging.INFO)
 
