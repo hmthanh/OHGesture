@@ -1,4 +1,4 @@
-torch==1.9
+torch
 numpy==1.19.5
 lmdb
 pyarrow==0.14.0
