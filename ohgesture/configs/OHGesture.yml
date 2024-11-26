@@ -15,7 +15,8 @@ processing_data_std: "../ZeroEGGSProcessing/processed/std.npz"
 gesture_mean: "../ZeroEGGSProcessing/processed/mean.npz"
 gesture_std: "../ZeroEGGSProcessing/processed/std.npz"
 
-wavlm_model_path: './WavLM/WavLM-Large.pt'
+# wavlm_model_path: './WavLM/WavLM-Large.pt'
+wavlm_model_path: '/Users/thanh/OpenHuman/OHGesture/diffuse_style_gesture/WavLM/WavLM-Large.pt'
 
 n_poses: 88     # 88 -> 20*60
 n_codes: 30

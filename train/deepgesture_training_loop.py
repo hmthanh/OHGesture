@@ -21,11 +21,6 @@ import sys
 # from generate.mycustomgenerate import WavEncoder
 from process_zeggs_bvh import pose2bvh
 
-# For ImageNet experiments, this was a good default value.
-# We found that the lg_loss_scale quickly climbed to
-# 20-21 within the first ~1K steps of training.
-INITIAL_LOG_LOSS_SCALE = 20.0
-
 
 class DeepGestureTrainLoop:
     def __init__(self, args, model, diffusion, device, data=None):
@@ -141,7 +136,7 @@ class DeepGestureTrainLoop:
     def run_loop(self):
 
         for epoch in range(self.num_epochs):
-            print(f'Starting epoch {epoch}')
+            print(f'Starting epoch {epoch}', end="\n")
             # for _ in tqdm(range(10)):     # 4 steps, batch size, chmod 777
             for batch in tqdm(self.data):
                 if not (not self.lr_anneal_steps or self.step + self.resume_step < self.lr_anneal_steps):
