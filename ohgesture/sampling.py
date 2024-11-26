@@ -1,6 +1,6 @@
 import sys
 
-[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
+[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
 
 import os
 import argparse
@@ -18,6 +18,7 @@ from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 from mfcc import MFCC
 from ZEGGS.process_zeggs_bvh import pose2bvh, quat  # '../process'
 from model.mdm import MDM
+from wavlm.WavLM import SpeechWavLM, SpeechWavLMConfig
 
 style2onehot = {
     'Happy': [1, 0, 0, 0, 0, 0],
@@ -31,21 +32,20 @@ style2onehot = {
 
 def wavlm_init(args, device=torch.device('cuda:0')):
     import sys
-    [sys.path.append(i) for i in ['./WavLM']]
-    from WavLM import WavLM, WavLMConfig
+
     checkpoint = torch.load(args.wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)  # load the pre-trained checkpoints
-    cfg = WavLMConfig(checkpoint['cfg'])
-    model = WavLM(cfg)
+    cfg = SpeechWavLMConfig(checkpoint['cfg'])
+    model = SpeechWavLM(cfg)
     model = model.to(device)
     model.load_state_dict(checkpoint['model'])
     model.eval()
     return model
 
 
-def wav2wavlm(model, wav_input_16khz, device=torch.device('cuda:0')):
+def wav2wavlm(args, model, wav_input_16khz, device=torch.device('cuda:0')):
     wav_input_16khz = wav_input_16khz.to(device)
     rep = model.extract_features(wav_input_16khz)[0]
-    rep = F.interpolate(rep.transpose(1, 2), size=88, align_corners=True, mode='linear').transpose(1, 2)
+    rep = F.interpolate(rep.transpose(1, 2), size=args.n_poses, align_corners=True, mode='linear').transpose(1, 2)
     return rep
 
 
@@ -247,7 +247,7 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
                     model_kwargs_['y']['audio'] = torch.cat((pad_audio, model_kwargs_['y']['audio']), 0)
                     model_kwargs_['y']['seed'] = out_list[-1][..., -n_seed:].to(device)
 
-            model_kwargs_['y']['audio'] = wav2wavlm(wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
+            model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
 
             sample = sample_fn(
                 model,
@@ -340,7 +340,7 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
     print("pose saved in : ", saved_path)
 
 
-def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavlm_path=None, max_len=0, device=torch.device('cpu')):
+def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavlm_path=None, max_len=0, device=torch.device('cuda:0')):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
@@ -377,10 +377,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavl
 
     sample_fn = diffusion.p_sample_loop  # predict x_start
 
-    # print("audiowavlm_pathaudiowavlm_pathaudiowavlm_pathaudiowavlm_path", audiowavlm_path)
     style = style2onehot[audio_wavlm_path.split('/')[-1].split('_')[1]]
-    # style = [0, 0, 1, 0, 0, 0]
-    # style = style2onehot['Neutral']
     print(style)
 
     wavlm_model = wavlm_init(args, device)
