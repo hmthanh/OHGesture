@@ -389,7 +389,6 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
 
 
 if __name__ == '__main__':
-    # python sample.py --config=./configs/DiffuseStyleGesture.yml --gpu mps --model_path './model000450000.pt' --audiowavlm_path "./016_Neutral_4_x_1_0.wav"
     # python sample.py --config=./configs/DiffuseStyleGesture.yml --gpu mps --model_path './model000450000.pt' --audiowavlm_path "./021_Happy_4_x_1_0.wav"
     # prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     # save_dir = 'sample_' + prefix

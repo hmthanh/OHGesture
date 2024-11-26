@@ -15,7 +15,7 @@ def wavlm_init(device=torch.device('cuda:0')):
     [sys.path.append(i) for i in ['./WavLM']]
     from WavLM import WavLM, WavLMConfig
     wavlm_model_path = './WavLM/WavLM-Large.pt'
-    # wavlm_model_path = '../../../My/process/WavLM-Base+.pt'
+
     # load the pre-trained checkpoints
     checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)
     cfg = WavLMConfig(checkpoint['cfg'])
