@@ -22,7 +22,8 @@ logging.getLogger().setLevel(logging.INFO)
 
 def create_model_and_diffusion(args):
     model = DeepGesture(modeltype='', njoints=1141, nfeats=1,
-                        cond_mode='cross_local_attention3_style1', action_emb='tensor',
+                        translation=True, pose_rep='rot6d', glob=True, glob_rot=True,
+                        cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor',
                         audio_feat=args.audio_feat,
                         arch='trans_enc', latent_dim=256,
                         n_seed=8, cond_mask_prob=0.1)

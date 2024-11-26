@@ -552,22 +552,33 @@ class WavEncoder(nn.Module):
 if __name__ == '__main__':
     '''
     cd ./main/model
-    python mdm.py
+    python deepgesture.py
     '''
     n_frames = 88
     n_seed = 8
     text_dim = 300
     batch_size = 1152
+    joints_feature = 1141
 
-    model = DeepGesture(modeltype='', njoints=1140, nfeats=1, cond_mode='cross_local_attention5_style1', action_emb='tensor', audio_feat='mfcc',
+    # arch=mytrans_enc cross_local_attention5_style1
+    model = DeepGesture(modeltype='', njoints=1141, nfeats=1,
+                        cond_mode='cross_local_attention3_style1', action_emb='tensor',
+                        audio_feat='mfcc',
                         arch='trans_enc', latent_dim=256, n_seed=n_seed, cond_mask_prob=0.1)
-    # mytrans_enc
-    x = torch.randn(2, 1140, 1, 88)
+
+    # batch_size, njoints, nfeats, max_frames
+    x = torch.randn(batch_size, joints_feature, 1, n_frames)
     t = torch.tensor([12, 85])
 
     model_kwargs_ = {'y': {}}
     model_kwargs_['y']['mask'] = (torch.zeros([1, 1, 1, n_frames]) < 1)  # [..., n_seed:]
+
+    # mfcc
     model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13).permute(1, 0, 2)  # [n_seed:, ...]
+
+    # wavlm
+    # model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
+
     model_kwargs_['y']['style'] = torch.randn(batch_size, 6)
     model_kwargs_['y']['text'] = torch.randn(batch_size, n_frames, text_dim)
     model_kwargs_['y']['mask_local'] = torch.ones(batch_size, n_frames).bool()
