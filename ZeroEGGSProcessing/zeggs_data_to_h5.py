@@ -35,8 +35,8 @@ def make_h5_gesture_dataset(root_path):
         v_i = 0
         print(f"Processing total {total_bvh_files} bvh files")
 
-        data_mean = np.load(os.path.join(root_path, 'mean.npz'))['mean']
-        data_std = np.load(os.path.join(root_path, 'std.npz'))['std']
+        gesture_mean = np.load(os.path.join(root_path, 'mean.npz'))['mean']
+        gesture_std = np.load(os.path.join(root_path, 'std.npz'))['std']
 
         with h5py.File(h5_dataset_path, 'w') as hdf:
             print("Created ", h5_dataset_path)
@@ -56,25 +56,25 @@ def make_h5_gesture_dataset(root_path):
 
                 # process mean and std
 
-                data_mean = np.array(data_mean).squeeze()
-                data_std = np.array(data_std).squeeze()
+                data_mean = np.array(gesture_mean).squeeze()
+                data_std = np.array(gesture_std).squeeze()
                 std = np.clip(data_std, a_min=0.01, a_max=None)
                 poses = (poses - data_mean) / std
-                poses = np.asarray(poses)
+                gesture_normalize = np.asarray(poses)
 
                 # Embedding
                 embedding = np.load(os.path.join(embedding_path, f"{name}.npy"))
 
-                print("embedding", embedding.shape, "audio_raw", audio_raw.shape, "poses", poses.shape)
+                print("embedding", embedding.shape, "audio_raw", audio_raw.shape, "poses", gesture_normalize.shape)
 
                 # ~~~~~~~~~~~~~ Write Data ~~~~~~~~~~~~~
                 g_data = hdf.create_group(name)
 
-                g_data.create_dataset('poses', data=poses)
-                g_data.create_dataset('audio_raw', data=audio_raw)
+                g_data.create_dataset('gesture', data=gesture_normalize)
+                g_data.create_dataset('speech', data=audio_raw)
                 # g_data.create_dataset('mfcc_raw', data=mfcc_raw)
-                g_data.create_dataset('style_raw', data=np.array(style))
-                g_data.create_dataset('embedding', data=embedding)
+                g_data.create_dataset('emotion', data=np.array(style))
+                g_data.create_dataset('text', data=embedding)
 
                 v_i += 1
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     '''
     source_path = './data/'
     target = './processed/'
-    processing_zeggs_dataset(source_path, target)
+    # processing_zeggs_dataset(source_path, target)
     make_h5_gesture_dataset(target)
 
     # def sample_read_h5_dataset(h5_dataset_path):

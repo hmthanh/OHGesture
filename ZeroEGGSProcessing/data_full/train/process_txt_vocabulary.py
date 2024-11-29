@@ -5,6 +5,8 @@ import argparse
 from pprint import pprint
 from gensim.models import KeyedVectors
 import contractions
+import re
+
 nltk.download('punkt')
 nltk.download('punkt_tab')
 
@@ -17,6 +19,7 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
 
 # def expand_contractions_nltk(text, word2vec_model, file):
 #     # Expand contractions
@@ -46,27 +49,41 @@ def parse_args():
 #     sentence_result = expand_contractions_nltk(raw_text, word2vec_model, file)
 #     return sentence_result
 
+def expand_contractions(text):
+    contractions_dict = {
+        "'s": " is",
+        "'re": " are",
+        "'m": " am",
+        "'ve": " have",
+        "'d": " would",
+        "n't": " not",
+    }
+
+    pattern = re.compile(r'\b(' + '|'.join(re.escape(key) for key in contractions_dict.keys()) + r')\b')
+
+    expanded_text = pattern.sub(lambda x: contractions_dict[x.group(0)], text)
+    return expanded_text
+
+
 def process_txt_contractions(file, word2vec_model):
     with open(file, "r") as f:
         raw_text = f.readlines()
 
     # Expand contractions
     text_fixed = contractions.fix(''.join(raw_text))  # Join lines into a single string for contraction expansion
+    text_result = expand_contractions(text_fixed)
 
-    tokens = nltk.word_tokenize(text_fixed)
+    # tokens = nltk.word_tokenize(text_fixed)
+    # # Recheck tokens in word2vec model
+    # for token in tokens:
+    #     try:
+    #         word2vec_model.get_vector(token)
+    #     except KeyError:
+    #         with open("./data/train/log.txt", "a") as log_file:
+    #             log_file.write(f"Inside file {file}, Token {token} not found in word2vec model\n")
+    #         print(f"Token {token} not found in word2vec model")
 
-    # Recheck tokens in word2vec model
-    for token in tokens:
-        try:
-            word2vec_model.get_vector(token)
-        except KeyError:
-            with open("./data/train/log.txt", "a") as log_file:
-                log_file.write(f"Inside file {file}, Token {token} not found in word2vec model\n")
-            print(f"Token {token} not found in word2vec model")
-
-    # Rejoin tokens into a sentence
-    expanded_text = ' '.join(tokens)  # Fix this to join the tokens, not the original text
-    return expanded_text
+    return text_result
 
 
 if __name__ == '__main__':
@@ -80,7 +97,8 @@ if __name__ == '__main__':
 
     transcribes = os.listdir(args.src)
     files = [os.path.join(args.src, f) for f in transcribes]
-    word2vec_model = KeyedVectors.load_word2vec_format(args.word2vec_model, binary=False)
+    # word2vec_model = KeyedVectors.load_word2vec_format(args.word2vec_model, binary=False)
+    word2vec_model = None
 
     for file in files:
         print("Processing", file)

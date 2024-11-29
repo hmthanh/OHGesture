@@ -7,6 +7,7 @@ import torch.nn.functional as F
 # [sys.path.append(i) for i in ['./WavLM']]
 from wavlm.wavlm_embedding import WavLM, WavLMConfig
 
+
 def wavlm_init(args, device=torch.device('cuda:0')):
     # load the pre-trained checkpoints
     checkpoint = torch.load(args.wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)
@@ -40,7 +41,7 @@ class DeepGesturePreprocessor:
                 print("Dataset is empty, please processing ZEGGS first.")
 
         self.h5_dataset = h5_dataset
-        if os.path.exists(self.h5_dataset):
+        if args.remove_if_exist and os.path.exists(self.h5_dataset):
             os.remove(self.h5_dataset)
         with h5py.File(self.h5_dataset, 'a') as h5:
             print("Dataset h5 before processing: ", len(h5.keys()))
@@ -53,7 +54,6 @@ class DeepGesturePreprocessor:
         self.audio_sample_length = int(self.n_poses / self.skeleton_resampling_fps * 16000)
         self.n_out_samples = 0
 
-
     def run(self):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         for key in self.h5_data_keys:
@@ -62,14 +62,13 @@ class DeepGesturePreprocessor:
                 item = hdf[key]
 
                 # Access datasets
-                poses = item['poses'][:]
-                audio_raw = item['audio_raw'][:]
+                gesture = item['gesture'][:]
+                audio_raw = item['speech'][:]
                 # mfcc_raw = item['mfcc_raw'][:]
-                mfcc_raw = []
-                style_raw = item['style_raw'][:]
-                embedding_raw = item['embedding'][:]
+                emotion_raw = item['emotion'][:]
+                embedding_raw = item['text'][:]
 
-                self.sample_clip_to_h5_dataset(key, poses, audio_raw, mfcc_raw, style_raw, embedding_raw)
+                self.sample_clip_to_h5_dataset(key, gesture, audio_raw, emotion_raw, embedding_raw)
 
         with h5py.File(self.h5_dataset, 'r') as h5:
             print("Dataset h5 after processing: ", len(h5.keys()))
@@ -77,31 +76,34 @@ class DeepGesturePreprocessor:
 
     def sample_read(self):
 
-        with h5py.File(self.h5_dataset, 'a') as h5:
+        with h5py.File(self.h5_data, 'a') as h5:
             for key in h5.keys():
                 item = h5[key]
                 gesture = item['gesture'][:]
                 emotions = item['emotion'][:]
                 speech = item['speech'][:]
+                text = item['text'][:]
 
-                print("gesture: ", gesture.shape, "emotion: ", emotions.shape, "speech", speech.shape)
+                print("gesture: ", gesture.shape, "emotion: ", emotions.shape, "speech", speech.shape, "text", text.shape)
 
                 break
 
-
-    def sample_clip_to_h5_dataset(self, key, poses, audio_raw, mfcc_raw, style_raw, embedding_raw):
+    def sample_clip_to_h5_dataset(self, key, gesture, audio_raw, emotion_raw, embedding_raw):
         print("Processing data item : " + key)
         # divide
         gesture_list = []
         audio_raw_list = []
         emotion_list = []
-        mfcc_list = []
+        # mfcc_list = []
         wavlm_list = []
         embedding_list = []
 
+        # mfcc_raw,
+
         # MIN_LEN = min(len(poses), int(len(audio_raw) * 60 / 16000), len(mfcc_raw))
         # MIN_LEN = min(len(poses), int(len(audio_raw) * 60 / 16000))
-        total_frames = min(len(poses), int(len(audio_raw) * 60 / 16000))
+        total_frames = min(len(gesture), int(len(audio_raw) * 60 / 16000))
+        print("Total frames: ", total_frames)
 
         num_subdivision = math.floor(
             (total_frames - self.n_poses)
@@ -111,13 +113,13 @@ class DeepGesturePreprocessor:
             start_idx = i * self.subdivision_stride
             fin_idx = start_idx + self.n_poses
 
-            sample_skeletons = poses[start_idx:fin_idx]
-            sample_mfcc = mfcc_raw[start_idx:fin_idx]
+            sample_skeletons = gesture[start_idx:fin_idx]
+            # sample_mfcc = mfcc_raw[start_idx:fin_idx]
             # subdivision_start_time = start_idx / self.skeleton_resampling_fps
             # subdivision_end_time = fin_idx / self.skeleton_resampling_fps
 
             # raw audio
-            audio_start = math.floor(start_idx / len(poses) * len(audio_raw))
+            audio_start = math.floor(start_idx / len(gesture) * len(audio_raw))
             audio_end = audio_start + self.audio_sample_length
             sample_audio = audio_raw[audio_start:audio_end]
             sample_wavlm = wav2wavlm(args, self.wavmodel, sample_audio)
@@ -126,10 +128,10 @@ class DeepGesturePreprocessor:
             embedding = embedding_raw[start_idx:fin_idx]
 
             gesture_list.append(sample_skeletons)
-            mfcc_list.append(sample_mfcc)
+            # mfcc_list.append(sample_mfcc)
             wavlm_list.append(sample_wavlm)
             audio_raw_list.append(sample_audio)
-            emotion_list.append(style_raw)
+            emotion_list.append(emotion_raw)
             embedding_list.append(embedding)
 
         n_items = 0
@@ -158,24 +160,28 @@ class DeepGesturePreprocessor:
 
 if __name__ == '__main__':
     '''
-    python data_to_h5dataset.py --config=../mydiffusion_zeggs/configs/OHGesture.yml
+    python data_to_h5dataset.py --config=../main/configs/OHGesture.yml
     '''
-    from configs.parse_args import parse_args
     import os
     import yaml
     from pprint import pprint
     from easydict import EasyDict
+    from argparse import ArgumentParser
 
-    args = parse_args()
+    parser = ArgumentParser(description='DiffuseStyleGesture')
+    parser.add_argument('--config', default='./configs/OHGesture.yml')
+    parser.add_argument('--gpu', type=str, default='cuda:0')
+    parser.add_argument('--remove_if_exist', required=False, type=bool, default=True)
+    args = parser.parse_args()
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
-    
+
     for k, v in vars(args).items():
         config[k] = v
     pprint(config)
     args = EasyDict(config)
-    
+
     device_type = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
     device = torch.device(args.gpu)
     args.device = device

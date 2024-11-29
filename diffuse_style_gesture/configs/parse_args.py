@@ -1,10 +1,11 @@
 import configargparse
 import argparse
 
+
 def str2bool(v):
     """ from https://stackoverflow.com/a/43357954/1361529 """
     if isinstance(v, bool):
-       return v
+        return v
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):

@@ -10,13 +10,15 @@ from gensim.models import KeyedVectors
 import csv
 import os
 from praatio import textgrid
+import fasttext
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='OHGesture')
-    parser.add_argument('--src', type=str, default='./data/train')
-    parser.add_argument('--dest', type=str, default='./processed/train')
-    parser.add_argument('--word2vec_model', type=str, default="./fasttext/crawl-300d-2M.vec")
+    parser.add_argument('--src', type=str, required=True, default='./data/train')
+    parser.add_argument('--dest', type=str, required=True, default='./processed/train')
+    parser.add_argument('--word2vec_model', required=True, type=str, default="./word_embedding/crawl-300d-2M.vec")
+    parser.add_argument('--subword_model', type=str, default="./word_embedding/crawl-300d-2M-subword")
 
     args = parser.parse_args()
     return args
@@ -75,7 +77,7 @@ def load_tsv_aligned(file):
 
 def load_csv_aligned(file):
     sentence = []
-    with open(file, "r") as f:
+    with open(os.path.join(file), "r") as f:
         reader = csv.reader(f)
         for i, line in enumerate(reader):
             if len(line) == 5:
@@ -126,7 +128,7 @@ def word2vec(sentence, word2vec_model, n_frames, fps, csv_file):
 
 if __name__ == '__main__':
     '''
-    python word2vec.py --src=./data/train  --dest=./processed/train/embedding --word2vec_model=./fasttext/crawl-300d-2M.vec
+    python word2vec.py --src=./data_full/train/aligned  --dest=./processed/train_full/embedding --word2vec_model=./word_embedding/crawl-300d-2M.vec --subword_model=./word_embedding/crawl-300d-2M-subword
     '''
     args = parse_args()
     pprint(args)
@@ -142,6 +144,7 @@ if __name__ == '__main__':
     # assert len(wav_files) == len(csv_files)
 
     word2vec_model = KeyedVectors.load_word2vec_format(args.word2vec_model, binary=False)
+    # subword_model = fasttext.load_model(args.subword_model)
 
     # if len(tsv_files) <= 0:
     #     for i, tgd_file in enumerate(tgd_files):
@@ -163,6 +166,6 @@ if __name__ == '__main__':
         n_frames = int(audio_length_seconds * fps)
         print(f"Audio length: {audio_length_seconds} -> {audio_length_seconds * fps}")
         sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps, csv_file)
-        print(np.shape(sentence_vec), " -> saving ", f"{wav_file[:-4]}.npy")
+        print(np.shape(sentence_vec), " -> saving ", csv_file)
         np.save(os.path.join(args.dest, f"{wav_file[:-4]}.npy"), sentence_vec)
-        # np.savez_compressed
+        # # np.savez_compressed
