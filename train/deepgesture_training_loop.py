@@ -1,10 +1,10 @@
 import functools
 import os
 import numpy as np
-
 import blobfile as bf
 import torch
 from torch.optim import AdamW
+import sys
 
 from diffusion import logger
 from diffusion.fp16_util import MixedPrecisionTrainer
@@ -12,11 +12,7 @@ from diffusion.resample import LossAwareSampler, UniformSampler
 from tqdm import tqdm
 from diffusion.resample import create_named_schedule_sampler
 
-import sys
-
-# from mycustomgenerate import MyWavEncoder
-
-[sys.path.append(i) for i in ['../process', '../../ubisoft-laforge-ZeroEGGS-main', '../mydiffusion_zeggs']]
+[sys.path.append(i) for i in ['../process', '../../ubisoft-laforge-ZeroEGGS-main']]
 # from generate.generate import WavEncoder
 # from generate.mycustomgenerate import WavEncoder
 from process_zeggs_bvh import pose2bvh
@@ -44,7 +40,7 @@ class DeepGestureTrainLoop:
         self.resume_step = 0
         self.global_batch = self.batch_size  # * dist.get_world_size()
         # self.num_steps = args.num_steps
-        self.num_epochs = 40000
+        self.num_epochs = args.epochs # 40000
         self.n_seed = 8
 
         self.sync_cuda = torch.cuda.is_available()

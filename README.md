@@ -1,5 +1,7 @@
 # OHGesture - Gesture Generation
 
+![gesture_generation.png](./gesture_generation.png)
+
 ## Quick Start
 
 ```bash

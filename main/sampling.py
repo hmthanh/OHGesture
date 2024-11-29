@@ -386,7 +386,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavl
 
 if __name__ == '__main__':
     """
-    python sampling.py --config=./configs/OHGesture.yml --gpu mps --model_path="./model000450000.pt" --speech_path="./003_Neutral_2_x_1_0.wav"
+    python sampling.py --config=./configs/OHGesture.yml --gpu mps --model_path="./save_dir/ohgesture/model000000000.pt" --speech_path="./003_Neutral_2_x_1_0.wav"
     """
     parser = argparse.ArgumentParser(description='OHGesture')
     parser.add_argument('--config', default='configs/OHGesture.yml')
