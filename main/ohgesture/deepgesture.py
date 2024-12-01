@@ -80,29 +80,29 @@ class DeepGesture(nn.Module):
             self.embed_positions = RoFormerSinusoidalPositionalEmbedding(1536, self.latent_dim)
 
             sequence_trans_encoder_layer = TransformerEncoderLayer(d_model=self.latent_dim,
-                                                           nhead=self.num_heads,
-                                                           dim_feedforward=self.ff_size,
-                                                           dropout=self.dropout,
-                                                           activation=self.activation)
+                                                                   nhead=self.num_heads,
+                                                                   dim_feedforward=self.ff_size,
+                                                                   dropout=self.dropout,
+                                                                   activation=self.activation)
             self.seqTransEncoder = TransformerEncoder(sequence_trans_encoder_layer, num_layers=self.num_layers)
 
         elif self.arch == 'trans_enc':
             print("TRANS_ENC init")
             sequence_trans_encoder_layer = nn.TransformerEncoderLayer(d_model=self.latent_dim,
-                                                              nhead=self.num_heads,
-                                                              dim_feedforward=self.ff_size,
-                                                              dropout=self.dropout,
-                                                              activation=self.activation)
+                                                                      nhead=self.num_heads,
+                                                                      dim_feedforward=self.ff_size,
+                                                                      dropout=self.dropout,
+                                                                      activation=self.activation)
 
             self.seqTransEncoder = nn.TransformerEncoder(sequence_trans_encoder_layer, num_layers=self.num_layers)
         elif self.arch == 'trans_dec':
             print("TRANS_DEC init")
-            seqTransDecoderLayer = nn.TransformerDecoderLayer(d_model=self.latent_dim,
-                                                              nhead=self.num_heads,
-                                                              dim_feedforward=self.ff_size,
-                                                              dropout=self.dropout,
-                                                              activation=activation)
-            self.seqTransDecoder = nn.TransformerDecoder(seqTransDecoderLayer, num_layers=self.num_layers)
+            sequence_trans_decoder_layer = nn.TransformerDecoderLayer(d_model=self.latent_dim,
+                                                                      nhead=self.num_heads,
+                                                                      dim_feedforward=self.ff_size,
+                                                                      dropout=self.dropout,
+                                                                      activation=activation)
+            self.seqTransDecoder = nn.TransformerDecoder(sequence_trans_decoder_layer, num_layers=self.num_layers)
         elif self.arch == 'gru':
             print("GRU init")
             self.gru = nn.GRU(self.latent_dim, self.latent_dim, num_layers=self.num_layers, batch_first=False)
@@ -185,15 +185,15 @@ class DeepGesture(nn.Module):
         """
 
         bs, njoints, nfeats, nframes = x.shape  # 64, 251, 1, 196
-        emb_t = self.embed_timestep(timesteps)  # [1, bs, d], (1, 2, 256)
+        emb_t = self.embed_timestep(timesteps)  # [1, batch_size, d], (1, 2, 256)
 
         # force_mask = y.get('uncond', False)  # False
         force_mask = uncond_info
 
         if 'style1' in self.cond_mode:
-            embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask)  # (bs, 64)
+            embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask)  # (batch_size, 64)
             if self.n_seed != 0:
-                embed_text = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # (bs, 256-64)
+                embed_text = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # (batch_size, 256-64)
                 emb_1 = torch.cat((embed_style, embed_text), dim=1)
             else:
                 emb_1 = embed_style
@@ -210,38 +210,38 @@ class DeepGesture(nn.Module):
 
         if 'cross_local_attention' in self.cond_mode:
             if 'cross_local_attention3' in self.cond_mode:
-                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
+                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [batch_size, 135, 1, 240]
                 # self-attention
-                x_ = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 256]
+                x_ = self.input_process(x)  # [batch_size, 135, 1, 240] -> [240, 2, 256]
 
                 # local-cross-attention
                 packed_shape = [torch.Size([bs, self.num_head])]
-                xseq = torch.cat((x_, enc_text), axis=2)  # [bs, d+joints*feat, 1, #frames], (240, 2, 32)
+                xseq = torch.cat((x_, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, #frames], (240, 2, 32)
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (bs, 64) -> (len, bs, 64)
-                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, bs, dim)
+                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
+                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
                 xseq = self.input_process2(xseq)
-                xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
+                xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes, self.num_head, -1)
-                xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # Need (batch_size, 8, 2048, 64)
                 xseq = xseq.reshape(bs * self.num_head, nframes, -1)
                 pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
                 xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape,
-                                                  mask=y['mask_local'])  # (2, 8, 2048, 64)
-                xseq = xseq.permute(0, 2, 1, 3)  # (bs, len, 8, 64)
+                                                  mask=y['mask_local'])  # (batch_size, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # (batch_size, len, 8, 64)
                 xseq = xseq.reshape(bs, nframes, -1)
                 xseq = xseq.permute(1, 0, 2)
 
-                xseq = torch.cat((emb_1 + emb_t, xseq), axis=0)  # [seqlen+1, bs, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
-                xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
+                xseq = torch.cat((emb_1 + emb_t, xseq), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
+                xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
-                xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # Need (batch_size, 8, 2048, 64)
                 xseq = xseq.reshape(bs * self.num_head, nframes + 1, -1)
                 pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
                 xseq_rpe = xseq.reshape(bs, self.num_head, nframes + 1, -1)
-                xseq = xseq_rpe.permute(0, 2, 1, 3)  # [seqlen+1, bs, d]
+                xseq = xseq_rpe.permute(0, 2, 1, 3)  # [seqlen+1, batch_size, d]
                 xseq = xseq.view(bs, nframes + 1, -1)
                 xseq = xseq.permute(1, 0, 2)
                 if 'cross_local_attention2' in self.cond_mode:
@@ -250,42 +250,42 @@ class DeepGesture(nn.Module):
                     output = self.seqTransEncoder(xseq)[1:]
 
             elif 'cross_local_attention5' in self.cond_mode:
-                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
+                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [batch_size, 135, 1, 240]
                 # self-attention
-                x_ = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 256]
+                x_ = self.input_process(x)  # [batch_size, 135, 1, 240] -> [240, batch_size, 256]
 
                 # local-cross-attention
                 packed_shape = [torch.Size([bs, self.num_head])]
-                xseq = torch.cat((x_, enc_text), axis=2)  # [bs, d+joints*feat, 1, #frames], (240, 2, 32)
+                xseq = torch.cat((x_, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, frames], (240, 2, 32)
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (bs, 64) -> (len, bs, 64)
-                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, bs, dim)
+                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
+                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
                 xseq = self.input_process2(xseq)
-                xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
+                xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes, self.num_head, -1)
-                xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # Need (batch_size, 8, 2048, 64)
                 xseq = xseq.reshape(bs * self.num_head, nframes, -1)
                 pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
                 xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape,
-                                                  mask=y['mask_local'])  # (2, 8, 2048, 64)
-                xseq = xseq.permute(0, 2, 1, 3)  # (bs, len, 8, 64)
+                                                  mask=y['mask_local'])  # (batch_size, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # (batch_size, len, 8, 64)
                 xseq = xseq.reshape(bs, nframes, -1)
                 output = xseq.permute(1, 0, 2)
 
             else:
-                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
+                x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [batch_size, 135, 1, 240]
                 # self-attention
-                x_ = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 256]
-                xseq = torch.cat((emb_1 + emb_t, x_), axis=0)  # [seqlen+1, bs, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
-                xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
+                x_ = self.input_process(x)  # [batch_size, 135, 1, 240] -> [240, 2, 256]
+                xseq = torch.cat((emb_1 + emb_t, x_), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
+                xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
                 xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
                 xseq = xseq.reshape(bs * self.num_head, nframes + 1, -1)
                 pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
                 xseq_rpe = xseq.reshape(bs, self.num_head, nframes + 1, -1)
-                xseq = xseq_rpe.permute(0, 2, 1, 3)  # [seqlen+1, bs, d]
+                xseq = xseq_rpe.permute(0, 2, 1, 3)  # [seqlen+1, batch_size, d]
                 xseq = xseq.view(bs, nframes + 1, -1)
                 xseq = xseq.permute(1, 0, 2)
                 if 'cross_local_attention2' in self.cond_mode:
@@ -295,19 +295,19 @@ class DeepGesture(nn.Module):
 
                 # local-cross-attention
                 packed_shape = [torch.Size([bs, self.num_head])]
-                xseq = torch.cat((xseq, enc_text), axis=2)  # [bs, d+joints*feat, 1, #frames], (240, 2, 32)
+                xseq = torch.cat((xseq, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, #frames], (240, 2, 32)
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (bs, 64) -> (len, bs, 64)
-                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, bs, dim)
+                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
+                xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
                 xseq = self.input_process2(xseq)
-                xseq = xseq.permute(1, 0, 2)  # (bs, len, dim)
+                xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes, self.num_head, -1)
-                xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # Need (batch_size, 8, 2048, 64)
                 xseq = xseq.reshape(bs * self.num_head, nframes, -1)
                 pos_emb = self.rel_pos(xseq)  # (89, 32)
                 xseq, _ = apply_rotary_pos_emb(xseq, xseq, pos_emb)
-                xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape, mask=y['mask_local'])  # (2, 8, 2048, 64)
-                xseq = xseq.permute(0, 2, 1, 3)  # (bs, len, 8, 64)
+                xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape, mask=y['mask_local'])  # (batch_size, 8, 2048, 64)
+                xseq = xseq.permute(0, 2, 1, 3)  # (batch_size, len, 8, 64)
                 xseq = xseq.reshape(bs, nframes, -1)
                 output = xseq.permute(1, 0, 2)
 
@@ -316,62 +316,62 @@ class DeepGesture(nn.Module):
                 x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
                 enc_text_gru = enc_text.permute(1, 2, 0)  # (240, 2, 32) -> (2, 32, 240)
                 enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
-                x = torch.cat((x_reshaped, enc_text_gru), axis=1)  # [bs, d+joints*feat, 1, #frames]
+                x = torch.cat((x_reshaped, enc_text_gru), axis=1)  # [batch_size, d+joints*feat, 1, #frames]
                 if 'style2' in self.cond_mode:
-                    embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask).repeat(nframes, 1, 1)  # (#frames, bs, 64)
+                    embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask).repeat(nframes, 1, 1)  # (#frames, batch_size, 64)
                     embed_style = embed_style.unsqueeze(2)
                     embed_style = embed_style.permute(1, 3, 2, 0)
-                    x = torch.cat((x, embed_style), axis=1)  # [bs, d+joints*feat, 1, #frames]
+                    x = torch.cat((x, embed_style), axis=1)  # [batch_size, d+joints*feat, 1, #frames]
 
             if self.arch == 'gru':
                 x_reshaped = x.reshape(bs, njoints * nfeats, 1, nframes)  # [2, 135, 1, 240]
-                emb_gru = enc_text.repeat(nframes, 1, 1)  # [#frames, bs, d]
+                emb_gru = enc_text.repeat(nframes, 1, 1)  # [#frames, batch_size, d]
 
                 enc_text_gru = enc_text.permute(1, 2, 0)  # (240, 2, 32) -> (2, 32, 240)
                 enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
 
-                emb_gru = emb_gru.permute(1, 2, 0)  # [bs, d, #frames]
-                emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  # [bs, d, 1, #frames]
-                x = torch.cat((x_reshaped, emb_gru, enc_text_gru), axis=1)  # [bs, d+joints*feat, 1, #frames]
+                emb_gru = emb_gru.permute(1, 2, 0)  # [batch_size, d, #frames]
+                emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  # [batch_size, d, 1, #frames]
+                x = torch.cat((x_reshaped, emb_gru, enc_text_gru), axis=1)  # [batch_size, d+joints*feat, 1, #frames]
 
             x = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 224]
 
             if self.arch == 'trans_enc':
                 # adding the timestep embed
                 # x = torch.cat((x, enc_text), axis=2)        # [[240, 2, 224], (240, 2, 32)] -> (240, 2, 256)
-                xseq = torch.cat((enc_text, x), axis=0)  # [seqlen+1, bs, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
+                xseq = torch.cat((enc_text, x), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
 
-                xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
-                output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]      # -> (240, 2, 256)
+                xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, batch_size, d]
+                output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, batch_size, d]      # -> (240, 2, 256)
 
             elif self.arch == 'trans_dec':
                 if self.emb_trans_dec:
                     xseq = torch.cat((enc_text, x), axis=0)
                 else:
                     xseq = x
-                xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
+                xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, batch_size, d]
                 if self.emb_trans_dec:
-                    output = self.seqTransDecoder(tgt=xseq, memory=enc_text)[1:]  # [seqlen, bs, d] # FIXME - maybe add a causal mask
+                    output = self.seqTransDecoder(tgt=xseq, memory=enc_text)[1:]  # [seqlen, batch_size, d] # FIXME - maybe add a causal mask
                 else:
                     output = self.seqTransDecoder(tgt=xseq, memory=enc_text)
 
             elif self.arch == 'gru':
                 xseq = x
-                xseq = self.sequence_pos_encoder(xseq)  # [seqlen, bs, d]
+                xseq = self.sequence_pos_encoder(xseq)  # [seqlen, batch_size, d]
                 # pdb.set_trace()
                 output, _ = self.gru(xseq)
 
             elif self.arch == 'mytrans_enc':
                 # adding the timestep embed
                 # x = torch.cat((x, enc_text), axis=2)        # [[240, 2, 224], (240, 2, 32)] -> (240, 2, 256)
-                xseq = torch.cat((enc_text, x), axis=0)  # [seqlen+1, bs, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
+                xseq = torch.cat((enc_text, x), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
 
                 sinusoidal_pos = self.embed_positions(xseq.shape[0], 0)[None, None, :, :].chunk(2, dim=-1)
                 xseq = self.apply_rotary(xseq.permute(1, 0, 2), sinusoidal_pos).squeeze(0).permute(1, 0, 2)
 
-                output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]      # -> (240, 2, 256)
+                output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, batch_size, d]      # -> (240, 2, 256)
 
-        output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
+        output = self.output_process(output)  # [batch_size, njoints, nfeats, nframes]
         return output
 
     @staticmethod
@@ -479,14 +479,14 @@ class InputProcess(nn.Module):
         x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
 
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            x = self.poseEmbedding(x)  # [seqlen, bs, d]
+            x = self.poseEmbedding(x)  # [seqlen, batch_size, d]
             return x
         elif self.data_rep == 'rot_vel':
-            first_pose = x[[0]]  # [1, bs, 150]
-            first_pose = self.poseEmbedding(first_pose)  # [1, bs, d]
-            vel = x[1:]  # [seqlen-1, bs, 150]
-            vel = self.velEmbedding(vel)  # [seqlen-1, bs, d]
-            return torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, d]
+            first_pose = x[[0]]  # [1, batch_size, 150]
+            first_pose = self.poseEmbedding(first_pose)  # [1, batch_size, d]
+            vel = x[1:]  # [seqlen-1, batch_size, 150]
+            vel = self.velEmbedding(vel)  # [seqlen-1, batch_size, d]
+            return torch.cat((first_pose, vel), axis=0)  # [seqlen, batch_size, d]
         else:
             raise ValueError
 
@@ -506,17 +506,17 @@ class OutputProcess(nn.Module):
     def forward(self, output):
         nframes, bs, d = output.shape
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            output = self.poseFinal(output)  # [seqlen, bs, 150]
+            output = self.poseFinal(output)  # [seqlen, batch_size, 150]
         elif self.data_rep == 'rot_vel':
-            first_pose = output[[0]]  # [1, bs, d]
-            first_pose = self.poseFinal(first_pose)  # [1, bs, 150]
-            vel = output[1:]  # [seqlen-1, bs, d]
-            vel = self.velFinal(vel)  # [seqlen-1, bs, 150]
-            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, 150]
+            first_pose = output[[0]]  # [1, batch_size, d]
+            first_pose = self.poseFinal(first_pose)  # [1, batch_size, 150]
+            vel = output[1:]  # [seqlen-1, batch_size, d]
+            vel = self.velFinal(vel)  # [seqlen-1, batch_size, 150]
+            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, batch_size, 150]
         else:
             raise ValueError
         output = output.reshape(nframes, bs, self.njoints, self.nfeats)
-        output = output.permute(1, 2, 3, 0)  # [bs, njoints, nfeats, nframes]
+        output = output.permute(1, 2, 3, 0)  # [batch_size, njoints, nfeats, nframes]
         return output
 
 
@@ -612,7 +612,7 @@ if __name__ == '__main__':
     # model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13)  # [n_seed:, ...]
 
     # wavlm
-    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 1024)   # [n_seed:, ...]
+    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 1024)  # [n_seed:, ...]
     # model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
 
     model_kwargs_['y']['style'] = torch.randn(batch_size, 6)
