@@ -79,22 +79,22 @@ class DeepGesture(nn.Module):
 
             self.embed_positions = RoFormerSinusoidalPositionalEmbedding(1536, self.latent_dim)
 
-            seqTransEncoderLayer = TransformerEncoderLayer(d_model=self.latent_dim,
+            sequence_trans_encoder_layer = TransformerEncoderLayer(d_model=self.latent_dim,
                                                            nhead=self.num_heads,
                                                            dim_feedforward=self.ff_size,
                                                            dropout=self.dropout,
                                                            activation=self.activation)
-            self.seqTransEncoder = TransformerEncoder(seqTransEncoderLayer, num_layers=self.num_layers)
+            self.seqTransEncoder = TransformerEncoder(sequence_trans_encoder_layer, num_layers=self.num_layers)
 
         elif self.arch == 'trans_enc':
             print("TRANS_ENC init")
-            seqTransEncoderLayer = nn.TransformerEncoderLayer(d_model=self.latent_dim,
+            sequence_trans_encoder_layer = nn.TransformerEncoderLayer(d_model=self.latent_dim,
                                                               nhead=self.num_heads,
                                                               dim_feedforward=self.ff_size,
                                                               dropout=self.dropout,
                                                               activation=self.activation)
 
-            self.seqTransEncoder = nn.TransformerEncoder(seqTransEncoderLayer, num_layers=self.num_layers)
+            self.seqTransEncoder = nn.TransformerEncoder(sequence_trans_encoder_layer, num_layers=self.num_layers)
         elif self.arch == 'trans_dec':
             print("TRANS_DEC init")
             seqTransDecoderLayer = nn.TransformerDecoderLayer(d_model=self.latent_dim,
@@ -596,7 +596,7 @@ if __name__ == '__main__':
     # arch=mytrans_enc cross_local_attention5_style1 mfcc mytrans_enc trans_enc
     model = DeepGesture(modeltype='', njoints=joints_feature, nfeats=1,
                         cond_mode='cross_local_attention3_style1', action_emb='tensor',
-                        audio_feat='mfcc',
+                        audio_feat='wavlm',
                         text_feat='word2vec',
                         arch='trans_enc', latent_dim=latent_dim, n_seed=n_seed, cond_mask_prob=0.1)
 
@@ -609,7 +609,7 @@ if __name__ == '__main__':
     model_kwargs_['y']['mask'] = (torch.zeros([batch_size, 1, 1, n_frames]) < 1)  # [..., n_seed:]
 
     # mfcc
-    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13)  # [n_seed:, ...]
+    # model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13)  # [n_seed:, ...]
 
     # wavlm
     model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 1024)   # [n_seed:, ...]
