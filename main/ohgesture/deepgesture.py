@@ -12,9 +12,12 @@ class DeepGesture(nn.Module):
     def __init__(self, modeltype, njoints, nfeats,
                  latent_dim=256, ff_size=1024, num_layers=8, num_heads=4, dropout=0.1,
                  ablation=None, activation="gelu", legacy=False, data_rep='rot6d', dataset='amass', clip_dim=512,
-                 arch='trans_enc', emb_trans_dec=False, audio_feat='', n_seed=1, cond_mode='', **kargs):
+                 arch='trans_enc', emb_trans_dec=False,
+                 audio_feat='',
+                 text_feat='',
+                 n_seed=1, cond_mode='', **kargs):
         super().__init__()
-
+        # ~~~~~~~~~~~~~~~~~ configuration ~~~~~~~~~~~~~~~~~
         self.legacy = legacy
         self.modeltype = modeltype
         self.njoints = njoints
@@ -42,6 +45,7 @@ class DeepGesture(nn.Module):
         self.arch = arch
         self.gru_emb_dim = self.latent_dim if self.arch == 'gru' else 0
 
+        # --- Audio
         self.audio_feat = audio_feat
         if audio_feat == 'wav encoder':
             self.audio_feat_dim = 32
@@ -52,12 +56,16 @@ class DeepGesture(nn.Module):
             self.audio_feat_dim = 64  # Linear 1024 -> 64
             self.WavEncoder = WavEncoder()
 
+        # --- Text
+        self.text_feat = text_feat
+
         self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
         self.emb_trans_dec = emb_trans_dec
 
         self.cond_mode = cond_mode
         self.num_head = 8
 
+        # Feature Encoding
         if 'style2' not in self.cond_mode:
             self.input_process = InputProcess(self.data_rep, self.input_feats + self.audio_feat_dim + self.gru_emb_dim, self.latent_dim)
 
@@ -120,6 +128,7 @@ class DeepGesture(nn.Module):
         elif self.n_seed != 0:
             self.embed_text = nn.Linear(self.njoints * n_seed, self.latent_dim)
 
+        # Feature Decoding
         self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
                                             self.nfeats)
 
@@ -165,7 +174,10 @@ class DeepGesture(nn.Module):
         """
         x: [batch_size, njoints, nfeats, max_frames], denoted x_t in the paper
         timesteps: [batch_size] (int)
-        seed: [batch_size, njoints, nfeats]
+        y:{
+            seed: [batch_size, njoints, nfeats],
+            ...
+        }
         """
 
         bs, njoints, nfeats, nframes = x.shape  # 64, 251, 1, 196
@@ -183,6 +195,9 @@ class DeepGesture(nn.Module):
                 emb_1 = embed_style
         elif self.n_seed != 0:
             emb_1 = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
+
+        if self.text_feat == "word2vec":
+            word_embedding = self.linar_text(x)
 
         if self.audio_feat == 'wavlm':
             enc_text = self.WavEncoder(y['audio']).permute(1, 0, 2)
@@ -561,16 +576,17 @@ if __name__ == '__main__':
     joints_feature = 1141
     latent_dim = 256
 
-    # arch=mytrans_enc cross_local_attention5_style1
+    # arch=mytrans_enc cross_local_attention5_style1 mfcc
     model = DeepGesture(modeltype='', njoints=joints_feature, nfeats=1,
                         cond_mode='cross_local_attention3_style1', action_emb='tensor',
-                        audio_feat='mfcc',
+                        audio_feat='wavlm',
+                        text_feat='word2vec',
                         arch='trans_enc', latent_dim=latent_dim, n_seed=n_seed, cond_mask_prob=0.1)
 
     # batch_size, njoints, nfeats, max_frames
     x = torch.randn(batch_size, joints_feature, 1, n_frames)
     t = torch.randint(low=1, high=1000, size=[batch_size])
-    print(t, t.shape)
+    print("time_step: ", t, t.shape)
 
     model_kwargs_ = {'y': {}}
     model_kwargs_['y']['mask'] = (torch.zeros([batch_size, 1, 1, n_frames]) < 1)  # [..., n_seed:]
@@ -586,4 +602,4 @@ if __name__ == '__main__':
     model_kwargs_['y']['mask_local'] = torch.ones(batch_size, n_frames).bool()
     model_kwargs_['y']['seed'] = x[..., 0:n_seed]
     y = model(x, t, model_kwargs_['y'])
-    print(y.shape)
+    print("y shape: ", y.shape)

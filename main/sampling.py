@@ -51,7 +51,8 @@ def wav2wavlm(args, model, wav_input_16khz, device=torch.device('cuda:0')):
 
 def create_model_and_diffusion(args):
     model = DeepGesture(modeltype='', njoints=1141, nfeats=1, translation=True, pose_rep='rot6d', glob=True,
-                glob_rot=True, cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor', audio_feat=args.audio_feat,
+                glob_rot=True, cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor',
+                audio_feat=args.audio_feat, text_feat=args.text_feat,
                 arch='trans_enc', latent_dim=256, n_seed=8)  # trans_enc, trans_dec, gru, mytrans_enc
     diffusion = create_gaussian_diffusion()
     return model, diffusion

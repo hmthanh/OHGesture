@@ -25,6 +25,7 @@ def create_model_and_diffusion(args):
                         translation=True, pose_rep='rot6d', glob=True, glob_rot=True,
                         cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor',
                         audio_feat=args.audio_feat,
+                        text_feat=args.text_feat,
                         arch='trans_enc', latent_dim=256,
                         n_seed=8, cond_mask_prob=0.1)
     diffusion = create_gaussian_diffusion()
@@ -66,7 +67,6 @@ if __name__ == '__main__':
     cd mydiffusion_zeggs/
     python ohgesture.py --config=./configs/OHGesture.yml --gpu mps
     '''
-
     args = parse_args()
     device = torch.device(args.gpu)
 
