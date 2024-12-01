@@ -54,10 +54,13 @@ class DeepGesture(nn.Module):
         elif self.audio_feat == 'wavlm':
             print('USE WAVLM')
             self.audio_feat_dim = 64  # Linear 1024 -> 64
-            self.WavEncoder = WavEncoder()
+            self.speech_linear_encoder = WavEncoder()
 
         # --- Text
         self.text_feat = text_feat
+        if text_feat == 'word2vec':
+            self.text_feat_dim = 64  # Linear 1024 -> 64
+            self.text_linear_encoder = TextEncoder()
 
         self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
         self.emb_trans_dec = emb_trans_dec
@@ -65,6 +68,7 @@ class DeepGesture(nn.Module):
         self.cond_mode = cond_mode
         self.num_head = 8
 
+        # ~~~~~~~~~~~~~ Feature Encode -> Feature Concat -> Feature Correlation -> Feature Decode
         # Feature Encoding
         if 'style2' not in self.cond_mode:
             self.input_process = InputProcess(self.data_rep, self.input_feats + self.audio_feat_dim + self.gru_emb_dim, self.latent_dim)
@@ -196,13 +200,13 @@ class DeepGesture(nn.Module):
         elif self.n_seed != 0:
             emb_1 = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
 
-        if self.text_feat == "word2vec":
-            word_embedding = self.linar_text(x)
+        # if self.text_feat == "word2vec":
+        #     word_embedding = self.TextLinearEncoder(x)
 
         if self.audio_feat == 'wavlm':
-            enc_text = self.WavEncoder(y['audio']).permute(1, 0, 2)
+            enc_text = self.speech_linear_encoder(y['audio']).permute(1, 0, 2)
         else:
-            enc_text = y['audio']
+            enc_text = y['audio'].permute(1, 0, 2)
 
         if 'cross_local_attention' in self.cond_mode:
             if 'cross_local_attention3' in self.cond_mode:
@@ -559,16 +563,27 @@ class WavEncoder(nn.Module):
         super().__init__()
         self.audio_feature_map = nn.Linear(1024, 64)
 
-    def forward(self, rep):
-        rep = self.audio_feature_map(rep)
-        return rep
+    def forward(self, wav_feature):
+        wav_feature = self.audio_feature_map(wav_feature)
+        return wav_feature
+
+
+class TextEncoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.text_feature_map = nn.Linear(300, 64)
+
+    def forward(self, text_feat):
+        text_feat = self.text_feature_map(text_feat)
+        return text_feat
 
 
 if __name__ == '__main__':
-    '''
-    cd ./main/model
+    """
+    cd ./main/ohgesture
     python deepgesture.py
-    '''
+    """
+
     n_frames = 88
     n_seed = 8
     text_dim = 300
@@ -576,30 +591,35 @@ if __name__ == '__main__':
     joints_feature = 1141
     latent_dim = 256
 
-    # arch=mytrans_enc cross_local_attention5_style1 mfcc
+    device = torch.device('mps')
+
+    # arch=mytrans_enc cross_local_attention5_style1 mfcc mytrans_enc trans_enc
     model = DeepGesture(modeltype='', njoints=joints_feature, nfeats=1,
                         cond_mode='cross_local_attention3_style1', action_emb='tensor',
-                        audio_feat='wavlm',
+                        audio_feat='mfcc',
                         text_feat='word2vec',
                         arch='trans_enc', latent_dim=latent_dim, n_seed=n_seed, cond_mask_prob=0.1)
 
     # batch_size, njoints, nfeats, max_frames
     x = torch.randn(batch_size, joints_feature, 1, n_frames)
     t = torch.randint(low=1, high=1000, size=[batch_size])
-    print("time_step: ", t, t.shape)
+    print("time_step: ", t.shape)
 
     model_kwargs_ = {'y': {}}
     model_kwargs_['y']['mask'] = (torch.zeros([batch_size, 1, 1, n_frames]) < 1)  # [..., n_seed:]
 
     # mfcc
-    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13).permute(1, 0, 2)  # [n_seed:, ...]
+    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13)  # [n_seed:, ...]
 
     # wavlm
+    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 1024)   # [n_seed:, ...]
     # model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
 
     model_kwargs_['y']['style'] = torch.randn(batch_size, 6)
     model_kwargs_['y']['text'] = torch.randn(batch_size, n_frames, text_dim)
     model_kwargs_['y']['mask_local'] = torch.ones(batch_size, n_frames).bool()
     model_kwargs_['y']['seed'] = x[..., 0:n_seed]
+
+    print("x: ", x.shape, "\naudio", model_kwargs_['y']['audio'].shape, "\nstyle", model_kwargs_['y']['style'].shape, "\ntext", model_kwargs_['y']['text'].shape)
     y = model(x, t, model_kwargs_['y'])
     print("y shape: ", y.shape)

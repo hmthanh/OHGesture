@@ -35,6 +35,7 @@ class DeepGestureDataset(Dataset):
 
 class RandomSampler(torch.utils.data.Sampler):
     def __init__(self, min_id, max_id):
+        super(RandomSampler, self).__init__()
         self.min_id = min_id
         self.max_id = max_id
 
