@@ -40,7 +40,7 @@ class DeepGestureTrainLoop:
         self.resume_step = 0
         self.global_batch = self.batch_size  # * dist.get_world_size()
         # self.num_steps = args.num_steps
-        self.num_epochs = args.epochs # 40000
+        self.num_epochs = args.epochs  # 40000
         self.n_seed = 8
 
         self.sync_cuda = torch.cuda.is_available()
@@ -334,6 +334,27 @@ class DeepGestureTrainLoop:
         ) as f:
             torch.save(self.opt.state_dict(), f)
 
+    def find_resume_checkpoint(self):
+        if not os.path.exists(self.save_dir):
+            return None
+
+            # List all files in the save directory
+        files = os.listdir(self.save_dir)
+
+        # Filter for checkpoint files based on the naming pattern
+        checkpoint_files = [f for f in files if f.startswith("model") and f.endswith(".pt")]
+
+        if not checkpoint_files:
+            return None
+
+        # Extract step numbers from file names and find the latest
+        checkpoint_files.sort(key=lambda x: int(x[5:-3]))  # Extract the numeric part of "model{step}.pt"
+        latest_checkpoint = checkpoint_files[-1]
+
+        print(f"Latest checkpoint found: {latest_checkpoint}")
+
+        return os.path.join(self.save_dir, latest_checkpoint)
+
 
 def parse_resume_step_from_filename(filename):
     """
@@ -359,6 +380,7 @@ def get_blob_logdir():
 def find_resume_checkpoint():
     # On your infrastructure, you may want to override this to automatically
     # discover the latest checkpoint on your blob storage, etc.
+
     return None
 
 
