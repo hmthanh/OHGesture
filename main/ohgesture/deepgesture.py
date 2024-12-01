@@ -115,22 +115,22 @@ class DeepGesture(nn.Module):
             print('EMBED STYLE BEGIN TOKEN')
             if self.n_seed != 0:
                 self.style_dim = 64
-                self.embed_style = nn.Linear(6, self.style_dim)
-                self.embed_text = nn.Linear(self.njoints * n_seed, self.latent_dim - self.style_dim)
+                self.style_linear_encoder = nn.Linear(6, self.style_dim)
+                self.seed_gesture_linear = nn.Linear(self.njoints * n_seed, self.latent_dim - self.style_dim)
             else:
                 self.style_dim = self.latent_dim
-                self.embed_style = nn.Linear(6, self.style_dim)
+                self.style_linear_encoder = nn.Linear(6, self.style_dim)
 
         elif 'style2' in self.cond_mode:
             print('EMBED STYLE ALL FRAMES')
             self.style_dim = 64
-            self.embed_style = nn.Linear(6, self.style_dim)
+            self.style_linear_encoder = nn.Linear(6, self.style_dim)
             self.input_process = InputProcess(self.data_rep, self.input_feats + self.audio_feat_dim + self.gru_emb_dim + self.style_dim,
                                               self.latent_dim)
             if self.n_seed != 0:
-                self.embed_text = nn.Linear(self.njoints * n_seed, self.latent_dim)
+                self.seed_gesture_linear = nn.Linear(self.njoints * n_seed, self.latent_dim)
         elif self.n_seed != 0:
-            self.embed_text = nn.Linear(self.njoints * n_seed, self.latent_dim)
+            self.seed_gesture_linear = nn.Linear(self.njoints * n_seed, self.latent_dim)
 
         # Feature Decoding
         self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
@@ -185,24 +185,26 @@ class DeepGesture(nn.Module):
         """
 
         bs, njoints, nfeats, nframes = x.shape  # 64, 251, 1, 196
-        emb_t = self.embed_timestep(timesteps)  # [1, batch_size, d], (1, 2, 256)
+        latent_timestep = self.embed_timestep(timesteps)  # [1, batch_size, d], (1, 2, 256)
 
         # force_mask = y.get('uncond', False)  # False
         force_mask = uncond_info
 
         if 'style1' in self.cond_mode:
-            embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask)  # (batch_size, 64)
+            embed_style = self.mask_cond(self.style_linear_encoder(y['style']), force_mask=force_mask)  # (batch_size, 64)
             if self.n_seed != 0:
-                embed_text = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # (batch_size, 256-64)
+                embed_text = self.seed_gesture_linear(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # (batch_size, 256-64)
                 emb_1 = torch.cat((embed_style, embed_text), dim=1)
             else:
                 emb_1 = embed_style
         elif self.n_seed != 0:
-            emb_1 = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
+            emb_1 = self.seed_gesture_linear(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
 
         if self.text_feat == "word2vec":
-            word_embedding = self.TextLinearEncoder(x)
-            print('word_embedding', word_embedding.shape)
+            word_embedding = self.text_linear_encoder(y['text'])
+        else:
+            pass
+            # word_embedding = y['text']
 
         if self.audio_feat == 'wavlm':
             enc_text = self.speech_linear_encoder(y['audio']).permute(1, 0, 2)
@@ -220,7 +222,7 @@ class DeepGesture(nn.Module):
                 xseq = torch.cat((x_, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, #frames], (240, 2, 32)
 
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
+                embed_style_2 = (emb_1 + latent_timestep).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
                 xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
                 xseq = self.input_process2(xseq)
                 xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
@@ -235,7 +237,7 @@ class DeepGesture(nn.Module):
                 xseq = xseq.reshape(bs, nframes, -1)
                 xseq = xseq.permute(1, 0, 2)
 
-                xseq = torch.cat((emb_1 + emb_t, xseq), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
+                xseq = torch.cat((emb_1 + latent_timestep, xseq), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
                 xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
                 xseq = xseq.permute(0, 2, 1, 3)  # Need (batch_size, 8, 2048, 64)
@@ -260,7 +262,7 @@ class DeepGesture(nn.Module):
                 packed_shape = [torch.Size([bs, self.num_head])]
                 xseq = torch.cat((x_, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, frames], (240, 2, 32)
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
+                embed_style_2 = (emb_1 + latent_timestep).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
                 xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
                 xseq = self.input_process2(xseq)
                 xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
@@ -279,7 +281,7 @@ class DeepGesture(nn.Module):
                 x = x.reshape(bs, njoints * nfeats, 1, nframes)  # [batch_size, 135, 1, 240]
                 # self-attention
                 x_ = self.input_process(x)  # [batch_size, 135, 1, 240] -> [240, 2, 256]
-                xseq = torch.cat((emb_1 + emb_t, x_), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
+                xseq = torch.cat((emb_1 + latent_timestep, x_), axis=0)  # [seqlen+1, batch_size, d]     # [(1, 2, 256), (240, 2, 256)] -> (241, 2, 256)
                 xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
                 xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
                 xseq = xseq.permute(0, 2, 1, 3)  # Need (2, 8, 2048, 64)
@@ -299,7 +301,7 @@ class DeepGesture(nn.Module):
                 packed_shape = [torch.Size([bs, self.num_head])]
                 xseq = torch.cat((xseq, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, #frames], (240, 2, 32)
                 # all frames
-                embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
+                embed_style_2 = (emb_1 + latent_timestep).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
                 xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
                 xseq = self.input_process2(xseq)
                 xseq = xseq.permute(1, 0, 2)  # (batch_size, len, dim)
@@ -320,7 +322,7 @@ class DeepGesture(nn.Module):
                 enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
                 x = torch.cat((x_reshaped, enc_text_gru), axis=1)  # [batch_size, d+joints*feat, 1, #frames]
                 if 'style2' in self.cond_mode:
-                    embed_style = self.mask_cond(self.embed_style(y['style']), force_mask=force_mask).repeat(nframes, 1, 1)  # (#frames, batch_size, 64)
+                    embed_style = self.mask_cond(self.style_linear_encoder(y['style']), force_mask=force_mask).repeat(nframes, 1, 1)  # (#frames, batch_size, 64)
                     embed_style = embed_style.unsqueeze(2)
                     embed_style = embed_style.permute(1, 3, 2, 0)
                     x = torch.cat((x, embed_style), axis=1)  # [batch_size, d+joints*feat, 1, #frames]
