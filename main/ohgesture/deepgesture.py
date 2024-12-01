@@ -200,8 +200,9 @@ class DeepGesture(nn.Module):
         elif self.n_seed != 0:
             emb_1 = self.embed_text(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
 
-        # if self.text_feat == "word2vec":
-        #     word_embedding = self.TextLinearEncoder(x)
+        if self.text_feat == "word2vec":
+            word_embedding = self.TextLinearEncoder(x)
+            print('word_embedding', word_embedding.shape)
 
         if self.audio_feat == 'wavlm':
             enc_text = self.speech_linear_encoder(y['audio']).permute(1, 0, 2)
@@ -217,6 +218,7 @@ class DeepGesture(nn.Module):
                 # local-cross-attention
                 packed_shape = [torch.Size([bs, self.num_head])]
                 xseq = torch.cat((x_, enc_text), axis=2)  # [batch_size, d+joints*feat, 1, #frames], (240, 2, 32)
+
                 # all frames
                 embed_style_2 = (emb_1 + emb_t).repeat(nframes, 1, 1)  # (batch_size, 64) -> (len, batch_size, 64)
                 xseq = torch.cat((embed_style_2, xseq), axis=2)  # (seq, batch_size, dim)
@@ -620,6 +622,9 @@ if __name__ == '__main__':
     model_kwargs_['y']['mask_local'] = torch.ones(batch_size, n_frames).bool()
     model_kwargs_['y']['seed'] = x[..., 0:n_seed]
 
-    print("x: ", x.shape, "\naudio", model_kwargs_['y']['audio'].shape, "\nstyle", model_kwargs_['y']['style'].shape, "\ntext", model_kwargs_['y']['text'].shape)
+    print("x: ", x.shape)
+    print("audio: ", model_kwargs_['y']['audio'].shape)
+    print("style: ", model_kwargs_['y']['style'].shape)
+    print("text: ", model_kwargs_['y']['text'].shape)
     y = model(x, t, model_kwargs_['y'])
     print("y shape: ", y.shape)

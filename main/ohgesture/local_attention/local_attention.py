@@ -6,30 +6,36 @@ import torch.nn.functional as F
 
 from einops import rearrange, repeat, pack, unpack
 
-from local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
+# from local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
 
 # constant
 
 TOKEN_SELF_ATTN_VALUE = -5e4
+
 
 # helper functions
 
 def exists(val):
     return val is not None
 
+
 def default(value, d):
     return d if not exists(value) else value
+
 
 def to(t):
     return {'device': t.device, 'dtype': t.dtype}
 
+
 def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
+
 def l2norm(tensor):
     dtype = tensor.dtype
-    normed = F.normalize(tensor, dim = -1)
+    normed = F.normalize(tensor, dim=-1)
     return normed.type(dtype)
+
 
 def pad_to_multiple(tensor, multiple, dim=-1, value=0):
     seqlen = tensor.shape[dim]
@@ -38,30 +44,31 @@ def pad_to_multiple(tensor, multiple, dim=-1, value=0):
         return False, tensor
     remainder = math.ceil(m) * multiple - seqlen
     pad_offset = (0,) * (-1 - dim) * 2
-    return True, F.pad(tensor, (*pad_offset, 0, remainder), value = value)
+    return True, F.pad(tensor, (*pad_offset, 0, remainder), value=value)
 
-def look_around(x, backward = 1, forward = 0, pad_value = -1, dim = 2):
+
+def look_around(x, backward=1, forward=0, pad_value=-1, dim=2):
     t = x.shape[1]
     dims = (len(x.shape) - dim) * (0, 0)
-    padded_x = F.pad(x, (*dims, backward, forward), value = pad_value)
+    padded_x = F.pad(x, (*dims, backward, forward), value=pad_value)
     tensors = [padded_x[:, ind:(ind + t), ...] for ind in range(forward + backward + 1)]
-    return torch.cat(tensors, dim = dim)
+    return torch.cat(tensors, dim=dim)
+
 
 # main class
-
 class LocalAttention(nn.Module):
     def __init__(
-        self,
-        window_size,
-        causal = False,
-        look_backward = 1,
-        look_forward = None,
-        dropout = 0.,
-        shared_qk = False,
-        rel_pos_emb_config = None,
-        dim = None,
-        autopad = False,
-        exact_windowsize = False
+            self,
+            window_size,
+            causal=False,
+            look_backward=1,
+            look_forward=None,
+            dropout=0.,
+            shared_qk=False,
+            rel_pos_emb_config=None,
+            dim=None,
+            autopad=False,
+            exact_windowsize=False
     ):
         super().__init__()
         look_forward = default(look_forward, 0 if causal else 1)
@@ -88,7 +95,7 @@ class LocalAttention(nn.Module):
         #         dim = rel_pos_emb_config[0]
         #     self.rel_pos = SinusoidalEmbeddings(dim)
 
-    def forward(self, q, k, v, packed_shape, mask = None, input_mask = None):
+    def forward(self, q, k, v, packed_shape, mask=None, input_mask=None):
         mask = default(mask, input_mask)
 
         autopad, pad_value, window_size, causal, look_backward, look_forward, shared_qk = self.autopad, -1, self.window_size, self.causal, self.look_backward, self.look_forward, self.shared_qk
@@ -120,15 +127,15 @@ class LocalAttention(nn.Module):
         if shared_qk:
             k = l2norm(k)
 
-        seq = torch.arange(n, device = device)
-        b_t = rearrange(seq, '(w n) -> 1 w n', w = windows, n = window_size)
+        seq = torch.arange(n, device=device)
+        b_t = rearrange(seq, '(w n) -> 1 w n', w=windows, n=window_size)
 
-        bq, bk, bv = map(lambda t: rearrange(t, 'b (w n) d -> b w n d', w = windows), (q, k, v))
+        bq, bk, bv = map(lambda t: rearrange(t, 'b (w n) d -> b w n d', w=windows), (q, k, v))
 
         look_around_kwargs = dict(
-            backward =  look_backward,
-            forward =  look_forward,
-            pad_value = pad_value
+            backward=look_backward,
+            forward=look_forward,
+            pad_value=pad_value
         )
 
         bk = look_around(bk, **look_around_kwargs)
@@ -175,16 +182,16 @@ class LocalAttention(nn.Module):
             # if autopad:
             #     _, mask = pad_to_multiple(mask, window_size, dim = -1, value = False)
 
-            mask = rearrange(mask, '... (w n) -> (...) w n', w = windows, n = window_size)
+            mask = rearrange(mask, '... (w n) -> (...) w n', w=windows, n=window_size)
             mask = look_around(mask, **{**look_around_kwargs, 'pad_value': False})
             mask = rearrange(mask, '... j -> ... 1 j')
-            mask = repeat(mask, 'b ... -> (b h) ...', h = h)
+            mask = repeat(mask, 'b ... -> (b h) ...', h=h)
             sim = sim.masked_fill(~mask, mask_value)
             del mask
 
         # attention
 
-        attn = sim.softmax(dim = -1)
+        attn = sim.softmax(dim=-1)
         attn = self.dropout(attn)
 
         # aggregation
