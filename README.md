@@ -1,6 +1,12 @@
-# OHGesture - Gesture Generation
 
 ![gesture_generation.png](./gesture_generation.png)
+
+# OHGesture - A conversational gesture synthesis system based on emotions and semantics
+
+[![Hugging Face Pretrain](https://img.shields.io/badge/Pretrain-Hugging%20Face-blue)](https://huggingface.co/openhuman/openhuman)
+[![Homepage](https://img.shields.io/badge/Homepage-green)](https://deepgesture.github.io)
+
+![OHGesture.png](./OHGesture.png)
 
 ## Quick Start
 
