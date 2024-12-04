@@ -14,7 +14,7 @@
 pip install -r requirements.txt
 ```
 
-* Download pretrained model [OneDrive](https://1drv.ms/f/s!AvSTDY2o11xHgalWGd7PGtdj5yOiRA?e=xek1oW) and put in  `./mydiffusion_zeggs/`
+* Download pretrained model [OneDrive](https://1drv.ms/f/s!AvSTDY2o11xHgalWGd7PGtdj5yOiRA?e=xek1oW) and put in  `./diffuse_style_gesture/`
 
 ```bash
 cd ./diffuse_style_gesture
@@ -41,7 +41,7 @@ python word2vec.py --src=./data/train  --dest=./processed/train/embedding --word
 
 ```bash
 cd ./ZeroEGGSProcessing
-python data_to_h5dataset.py --config=../mydiffusion_zeggs/configs/OHGesture.yml
+python data_to_h5dataset.py --config=../diffuse_style_gesture/configs/OHGesture.yml
 ```
 
 ## Training
