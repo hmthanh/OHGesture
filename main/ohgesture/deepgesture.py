@@ -203,16 +203,17 @@ class DeepGesture(nn.Module):
 
         # ~~~ Text Embedding
         if self.text_feat == "word2vec":
-            word_embedding = self.text_linear_encoder(y['text'])
+            word_embedding = self.text_linear_encoder(y['text']).permute(1, 0, 2)
         else:
-            pass
-            # word_embedding = y['text']
+            word_embedding = y['text'].permute(1, 0, 2)
 
         # ~~~ Speech Embedding
         if self.audio_feat == 'wavlm':
-            enc_text = self.speech_linear_encoder(y['audio']).permute(1, 0, 2)
+            enc_audio = (self.speech_linear_encoder(y['audio'])).permute(1, 0, 2)
+            enc_text = enc_audio + word_embedding
         else:
-            enc_text = y['audio'].permute(1, 0, 2)
+            enc_audio = y['audio'].permute(1, 0, 2)
+            enc_text = enc_audio + word_embedding
 
         # ~~~ Latent Feature Attention
         if 'cross_local_attention' in self.cond_mode:
@@ -596,6 +597,7 @@ if __name__ == '__main__':
     n_frames = 88
     n_seed = 8
     text_dim = 300
+    audio_dim = 1024
     batch_size = 1152
     joints_feature = 1141
     latent_dim = 256
@@ -622,7 +624,7 @@ if __name__ == '__main__':
     # model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13)  # [n_seed:, ...]
 
     # wavlm
-    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 1024)  # [n_seed:, ...]
+    model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, audio_dim)  # [n_seed:, ...]
     # model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
 
     model_kwargs_['y']['style'] = torch.randn(batch_size, 6)
