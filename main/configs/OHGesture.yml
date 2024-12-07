@@ -13,7 +13,7 @@ gesture_mean: "../ZeroEGGSProcessing/processed/mean.npz"
 gesture_std: "../ZeroEGGSProcessing/processed/std.npz"
 
 # wavlm_model_path: './WavLM/WavLM-Large.pt'
-wavlm_model_path: './wavlm/WavLM-Large.pt'
+wavlm_model_path: '../wavlm/WavLM-Large.pt'
 
 # --------- FEATURE ---------
 # feature
