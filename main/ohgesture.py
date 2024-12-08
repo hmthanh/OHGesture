@@ -52,8 +52,8 @@ def main(args, device):
     # logging.info('len of train loader:{}, len of test loader:{}'.format(len(train_loader), len(test_loader)))
     logging.info('len of train loader: {}'.format(len(train_loader)))
 
-    if not os.path.exists(args.model_save_path):
-        os.mkdir(args.model_save_path)
+    if not os.path.exists(args.save_dir):
+        os.mkdir(args.save_dir)
 
     model, diffusion = create_model_and_diffusion(args)
 

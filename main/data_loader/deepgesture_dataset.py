@@ -45,11 +45,11 @@ class RandomSampler(torch.utils.data.Sampler):
 
 
 if __name__ == '__main__':
-    '''
-    cd main/mydiffusion_zeggs
+    """
+    cd main
     python data_loader/deepgesture_dataset.py --config=./configs/OHGesture.yml --gpu mps
     python data_loader/deepgesture_dataset.py --config=./configs/OHGesture.yml --gpu cuda:0
-    '''
+    """
 
     from configs.parse_args import parse_args
     import os
