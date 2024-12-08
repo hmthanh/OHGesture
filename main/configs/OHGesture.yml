@@ -29,7 +29,6 @@ epochs: 1 # 500     # 500 -> 10
 save_per_epochs: 25     # 20 -> 1
 
 
-model_save_path: "./output/train_OHGesture"
 name: "OHGesture"
 log_interval: 50
 weight_decay: 0.0
