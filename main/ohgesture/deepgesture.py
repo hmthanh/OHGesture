@@ -598,7 +598,7 @@ if __name__ == '__main__':
     n_seed = 8
     text_dim = 300
     audio_dim = 1024
-    batch_size = 1152
+    batch_size = 64
     joints_feature = 1141
     latent_dim = 256
 

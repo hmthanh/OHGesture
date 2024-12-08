@@ -63,10 +63,10 @@ def main(args, device):
 
 
 if __name__ == '__main__':
-    '''
-    cd mydiffusion_zeggs/
+    """
+    cd main/
     python ohgesture.py --config=./configs/OHGesture.yml --gpu mps
-    '''
+    """
     args = parse_args()
     device = torch.device(args.gpu)
 
