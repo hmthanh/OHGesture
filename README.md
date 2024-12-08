@@ -6,7 +6,7 @@
 [![Hugging Face Pretrain](https://img.shields.io/badge/Pretrain-Hugging%20Face-blue)](https://huggingface.co/openhuman/openhuman)
 [![Homepage](https://img.shields.io/badge/Homepage-green)](https://deepgesture.github.io)
 
-![OHGesture](./OHGesture.svg)
+![OHGesture](./OHGesture.png)
 
 ## Quick Start
 
