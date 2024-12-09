@@ -138,14 +138,12 @@ dmypy.json
 
 .idea/
 .idea
-/mydiffusion_zeggs/model.pt
-
 
 # new
 *.npz
 .DS_Store
 *.h5
-ZeroEGGSProcessing/word_embedding/*
+fasttext/*
 *.npy
 *.TextGrid
 *.wav

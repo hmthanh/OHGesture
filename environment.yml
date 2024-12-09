@@ -2,9 +2,6 @@ repositories:
   custom-repo:
     url: https://github.com/hmthanh/OHGesture
 
-global:
-  install_dir: ~/deepgesture
-
 dependencies:
   - absl-py
   - accelerate
