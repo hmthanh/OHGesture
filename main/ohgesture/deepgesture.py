@@ -619,14 +619,11 @@ if __name__ == '__main__':
 
     model_kwargs_ = {'y': {}}
     model_kwargs_['y']['mask'] = (torch.zeros([batch_size, 1, 1, n_frames]) < 1)  # [..., n_seed:]
-
     # mfcc
     # model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, 13)  # [n_seed:, ...]
-
     # wavlm
     model_kwargs_['y']['audio'] = torch.randn(batch_size, n_frames, audio_dim)  # [n_seed:, ...]
     # model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
-
     model_kwargs_['y']['style'] = torch.randn(batch_size, 6)
     model_kwargs_['y']['text'] = torch.randn(batch_size, n_frames, text_dim)
     model_kwargs_['y']['mask_local'] = torch.ones(batch_size, n_frames).bool()

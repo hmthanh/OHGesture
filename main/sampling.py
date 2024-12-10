@@ -31,8 +31,6 @@ style2onehot = {
 
 
 def wavlm_init(args, device=torch.device('cuda:0')):
-    import sys
-
     checkpoint = torch.load(args.wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)  # load the pre-trained checkpoints
     cfg = SpeechWavLMConfig(checkpoint['cfg'])
     model = SpeechWavLM(cfg)
@@ -51,9 +49,9 @@ def wav2wavlm(args, model, wav_input_16khz, device=torch.device('cuda:0')):
 
 def create_model_and_diffusion(args):
     model = DeepGesture(modeltype='', njoints=1141, nfeats=1, translation=True, pose_rep='rot6d', glob=True,
-                glob_rot=True, cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor',
-                audio_feat=args.audio_feat, text_feat=args.text_feat,
-                arch='trans_enc', latent_dim=256, n_seed=8)  # trans_enc, trans_dec, gru, mytrans_enc
+                        glob_rot=True, cond_mode='cross_local_attention3_style1', clip_version='ViT-B/32', action_emb='tensor',
+                        audio_feat=args.audio_feat, text_feat=args.text_feat,
+                        arch='trans_enc', latent_dim=256, n_seed=8)  # trans_enc, trans_dec, gru, mytrans_enc
     diffusion = create_gaussian_diffusion()
     return model, diffusion
 
@@ -185,8 +183,8 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("../ubisoft-laforge-ZeroEGGS/data/processed_v1/processed/std.npz")['std'].squeeze()
+    data_mean_ = np.load(args.gesture_mean)['mean'].squeeze()
+    data_std_ = np.load(args.gesture_std)['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -208,7 +206,7 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
         pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames, smoothing=SG_filter)
 
 
-def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=False, SG_filter=False, minibatch=False, skip_timesteps=0, n_seed=8, style=None, seed=123456, device=torch.device('cuda:0')):
+def inference(args, wavlm_model, audio, embedding, sample_fn, model, n_frames=0, smoothing=False, SG_filter=False, minibatch=False, skip_timesteps=0, n_seed=8, style=None, seed=123456, device=torch.device('cuda:0')):
     torch.manual_seed(seed)
 
     if n_frames == 0:
@@ -222,6 +220,10 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
             n_frames = num_subdivision * stride_poses
             print(
                 '{}, {}, {}'.format(num_subdivision, stride_poses, n_frames))
+    else:
+        # raise ValueError("Only support minibatch mode")
+        pass
+
     audio = audio[:int(n_frames * 16000 / 20)]
 
     model_kwargs_ = {'y': {}}
@@ -236,6 +238,10 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
         for i in range(0, num_subdivision):
             print(i, num_subdivision)
             model_kwargs_['y']['audio'] = audio_reshape[:, i:i + 1]
+            text_embedding = np.zeros([args.n_poses, 300])
+            stride_poses = args.n_poses - n_seed
+            text_embedding[:stride_poses, :] = embedding[i * stride_poses:(i + 1) * stride_poses, :]
+            # text_embedding = embedding[i * args.n_poses:(i + 1) * args.n_poses, :]
 
             if i == 0:
                 if n_seed != 0:
@@ -249,6 +255,14 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
                     model_kwargs_['y']['seed'] = out_list[-1][..., -n_seed:].to(device)
 
             model_kwargs_['y']['audio'] = wav2wavlm(args, wavlm_model, model_kwargs_['y']['audio'].transpose(0, 1), device)
+            model_kwargs_['y']['text'] = torch.from_numpy(text_embedding).to(torch.float32).unsqueeze(0).to(device)
+            print("\nx: ", shape_,
+                  "text:", model_kwargs_['y']['text'].shape,
+                  "audio:", model_kwargs_['y']['audio'].shape,
+                  "seed:", model_kwargs_['y']['seed'].shape,
+                  "style: ", model_kwargs_['y']['style'].shape,
+                  "mask_local: ", model_kwargs_['y']['mask_local'].shape,
+                  "mask: ", model_kwargs_['y']['mask'].shape)
 
             sample = sample_fn(
                 model,
@@ -324,12 +338,12 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
     data_std = np.array(data_std_).squeeze()
     std = np.clip(data_std, a_min=0.01, a_max=None)
     out_poses = np.multiply(sampled_seq[0], std) + data_mean
-    print(out_poses.shape)
+    print("final shape: ", out_poses.shape)
     prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     if smoothing: prefix += '_smoothing'
     if SG_filter: prefix += '_SG'
     if minibatch: prefix += '_minibatch'
-    prefix += '_%s' % (n_frames)
+    prefix += '_%s' % n_frames
     prefix += '_' + str(style)
     prefix += '_' + str(seed)
     saved_path = os.path.join(save_dir, prefix + '.bvh')
@@ -338,17 +352,20 @@ def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=
     else:
         pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames, smoothing=SG_filter)
 
-    print("pose saved in : ", saved_path)
+    print("Gesture saved in : ", saved_path)
 
 
-def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavlm_path=None, max_len=0, device=torch.device('cuda:0')):
+def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, speech_path=None, max_len=0, device=torch.device('cuda:0')):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
-    if audio_wavlm_path != None:
-        mfcc, fs = librosa.load(audio_wavlm_path, sr=16000)
+    embedding = np.load(args.embedding_path)
 
-    elif audio_path != None and mfcc_path == None:
+    if speech_path is not None:
+        mfcc, fs = librosa.load(speech_path, sr=16000)
+        print("Audio length: ", len(mfcc)/16000)
+
+    elif audio_path is not None and mfcc_path is None:
         # normalize_audio
         audio_name = audio_path.split('/')[-1]
         print('normalize audio: ' + audio_name)
@@ -364,8 +381,10 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavl
         print(mfcc[:, :-2].shape)  # -1 -> -2      # (502, 13)
         np.savez_compressed(os.path.join(save_dir, audio_name[:-4] + '.npz'), mfcc=mfcc[:, :-2])
 
-    elif mfcc_path != None and audio_path == None:
+    elif mfcc_path is not None and audio_path is None:
         mfcc = np.load(mfcc_path)['mfcc']
+    else:
+        raise ValueError('Please provide either mfcc_path or audio_path')
 
     # sample
     print("Creating model and diffusion...")
@@ -378,22 +397,23 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audio_wavl
 
     sample_fn = diffusion.p_sample_loop  # predict x_start
 
-    style = style2onehot[audio_wavlm_path.split('/')[-1].split('_')[1]]
-    print(style)
+    style = style2onehot[speech_path.split('/')[-1].split('_')[1]]
+    print("style", style)
 
     wavlm_model = wavlm_init(args, device)
-    inference(args, wavlm_model, mfcc, sample_fn, model, n_frames=max_len, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, style=style, seed=123456, device=device)
+    inference(args, wavlm_model, mfcc, embedding, sample_fn, model, n_frames=max_len, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, style=style, seed=123456, device=device)
 
 
 if __name__ == '__main__':
     """
-    python sampling.py --config=./configs/OHGesture.yml --gpu mps --model_path="./save_dir/ohgesture/model000000000.pt" --speech_path="./003_Neutral_2_x_1_0.wav"
+    python sampling.py --config=./configs/OHGesture.yml --gpu mps --model_path="./output/checkpoint/ohgesture/model000000000.pt" --speech_path="./003_Neutral_2_x_1_0.wav" --embedding_path=./003_Neutral_2_x_1_0.npy --max_len 0
     """
     parser = argparse.ArgumentParser(description='OHGesture')
     parser.add_argument('--config', default='configs/OHGesture.yml')
     parser.add_argument('--gpu', type=str, default='cuda:0')
-    parser.add_argument('--model_path', type=str, default='./model.pt')
+    parser.add_argument('--model_path', type=str, default='./output/checkpoint/ohgesture/model.pt')
     parser.add_argument('--speech_path', type=str, default='003_Neutral_2_x_1_0.wav')
+    parser.add_argument('--embedding_path', type=str, default='003_Neutral_2_x_1_0.npy')
     parser.add_argument('--max_len', type=int, default=0)
     args = parser.parse_args()
     with open(args.config) as f:
@@ -406,6 +426,6 @@ if __name__ == '__main__':
     device = torch.device(config.gpu)
 
     batch_size = 1
-    save_dir = 'sample_dir'
+    save_dir = './output/sample'
 
-    main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audio_wavlm_path=config.speech_path, max_len=config.max_len, device=device)
+    main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, speech_path=config.speech_path, max_len=config.max_len, device=device)

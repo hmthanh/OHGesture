@@ -3,7 +3,7 @@ from pprint import pprint
 from easydict import EasyDict
 import argparse
 import io
-import tqdm
+from tqdm import tqdm
 import numpy as np
 import librosa
 from gensim.models import KeyedVectors
@@ -23,6 +23,13 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
+def load_word2vec_model(word2vec_model_path):
+    with tqdm(total=1, desc='Loading Word2Vec model') as bar:
+        word2vec_model = KeyedVectors.load_word2vec_format(word2vec_model_path, binary=False)
+        bar.update(1)
+
+    return word2vec_model
 
 def load_word_embeddings(word2vec_model):
     word2vec_model = KeyedVectors.load_word2vec_format(word2vec_model, binary=False)
@@ -143,7 +150,7 @@ if __name__ == '__main__':
 
     # assert len(wav_files) == len(csv_files)
 
-    word2vec_model = KeyedVectors.load_word2vec_format(args.word2vec_model, binary=False)
+    word2vec_model = load_word2vec_model(args.word2vec_model)
     # subword_model = fasttext.load_model(args.subword_model)
 
     # if len(tsv_files) <= 0:
@@ -163,8 +170,8 @@ if __name__ == '__main__':
         csv_file = os.path.join(args.src, f"{wav_file[:-4]}.csv")
         align_sentence = load_csv_aligned(csv_file)
 
-        n_frames = int(audio_length_seconds * fps)
-        print(f"Audio length: {audio_length_seconds} -> {audio_length_seconds * fps}")
+        n_frames = int((len(wav) * fps) // sr)
+        print(f"Audio length: {audio_length_seconds} -> {n_frames} frames")
         sentence_vec = word2vec(align_sentence, word2vec_model, n_frames, fps, csv_file)
         print(np.shape(sentence_vec), " -> saving ", csv_file)
         np.save(os.path.join(args.dest, f"{wav_file[:-4]}.npy"), sentence_vec)
