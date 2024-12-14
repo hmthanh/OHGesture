@@ -12,7 +12,7 @@ from pprint import pprint
 from easydict import EasyDict
 
 from configs.parse_args import parse_args
-from data_loader.deepgesture_dataset import DeepGestureDataset
+from data_loader.deepgesture_dataset import DeepGestureDataset, custom_collate
 from utils.model_util import create_gaussian_diffusion
 from deepgesture_training_loop import DeepGestureTrainLoop
 from deepgesture import DeepGesture
@@ -39,7 +39,8 @@ def main(args, device):
                                        subdivision_stride=args.subdivision_stride,
                                        pose_resampling_fps=args.motion_resampling_framerate)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
-                              shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
+                              shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True,
+                              collate_fn=custom_collate)
 
     # ~~~~~~~~~~~~~~~ Valid ~~~~~~~~~~~~~~~
     # val_dataset = DeepGestureDataset(args.valid_h5,

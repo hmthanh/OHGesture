@@ -1,11 +1,54 @@
 import logging
 import pdb
-import torch
-from torch.utils.data import Dataset
+
 import sys
 import os
 import h5py
 import numpy as np
+import torch
+from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
+
+
+def custom_collate(batch):
+    """
+    Custom collate function for DeepGestureDataset to handle variable-length sequences.
+
+    Args:
+        batch (list): A list of tuples from the dataset
+
+    Returns:
+        tuple: Padded and batched tensors
+    """
+    # Separate the batch components
+    gestures, emotions, speeches, texts = zip(*batch)
+
+    # Convert to tensors
+    gestures = [torch.tensor(gesture, dtype=torch.float32) for gesture in gestures]
+    emotions = [torch.tensor(emotion, dtype=torch.float32) for emotion in emotions]
+    speeches = [torch.tensor(speech, dtype=torch.float32) for speech in speeches]
+    texts = [torch.tensor(text, dtype=torch.long) for text in texts]
+
+    # Pad sequences
+    padded_gestures = pad_sequence(gestures, batch_first=True)
+    padded_emotions = pad_sequence(emotions, batch_first=True)
+    padded_speeches = pad_sequence(speeches, batch_first=True)
+
+    # Create a mask for variable-length sequences (optional but recommended)
+    gesture_lengths = torch.tensor([len(gesture) for gesture in gestures])
+    emotion_lengths = torch.tensor([len(emotion) for emotion in emotions])
+    speech_lengths = torch.tensor([len(speech) for speech in speeches])
+
+    # Pad texts (assuming texts might be sequences of tokens)
+    padded_texts = pad_sequence(texts, batch_first=True)
+    text_lengths = torch.tensor([len(text) for text in texts])
+
+    return (
+        padded_gestures,
+        padded_emotions,
+        padded_speeches,
+        padded_texts
+    )
 
 
 class DeepGestureDataset(Dataset):
@@ -79,8 +122,17 @@ if __name__ == '__main__':
     #                                    n_poses=args.n_poses,
     #                                    subdivision_stride=args.subdivision_stride,
     #                                    pose_resampling_fps=args.motion_resampling_framerate)
-    train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
-                              shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
+    # train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,
+    #                           shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
+    train_loader = DataLoader(
+        dataset=train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        drop_last=True,
+        num_workers=args.loader_workers,
+        pin_memory=True,
+        collate_fn=custom_collate
+    )
 
     print("Total train loader: ", len(train_loader))
     for batch_i, batch in enumerate(train_loader, 0):
@@ -91,3 +143,5 @@ if __name__ == '__main__':
         print("emotion", emotion.shape)  # emotion torch.Size([1152, 6])
         print("speech", speech.shape)  # speech torch.Size([1152, 88, 1024])
         print("embedding", embedding.shape)  # embedding torch.Size([1152, 88, 300])
+        break
+
