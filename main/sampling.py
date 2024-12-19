@@ -1,6 +1,6 @@
 import sys
 
-[sys.path.append(i) for i in ['.', '..', '../process', '../model', '../ubisoft-laforge-ZeroEGGS/ZEGGS']]
+[sys.path.append(i) for i in ['.', '..', '../diffuse_style_gesture', '../process', '../model', '../ubisoft-laforge-ZeroEGGS/ZEGGS', '../wavlm']]
 
 import os
 import argparse
@@ -15,10 +15,10 @@ from pprint import pprint
 import torch
 import torch.nn.functional as F
 from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
-from mfcc import MFCC
 from ZEGGS.process_zeggs_bvh import pose2bvh, quat  # '../process'
-from deepgesture import DeepGesture
-from wavlm.WavLM import SpeechWavLM, SpeechWavLMConfig
+from model.deepgesture import DeepGesture
+from wavlm.wavlm_embedding import WavLM, WavLMConfig
+from mfcc import MFCC
 
 style2onehot = {
     'Happy': [1, 0, 0, 0, 0, 0],
@@ -32,8 +32,8 @@ style2onehot = {
 
 def wavlm_init(args, device=torch.device('cuda:0')):
     checkpoint = torch.load(args.wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)  # load the pre-trained checkpoints
-    cfg = SpeechWavLMConfig(checkpoint['cfg'])
-    model = SpeechWavLM(cfg)
+    cfg = WavLMConfig(checkpoint['cfg'])
+    model = WavLM(cfg)
     model = model.to(device)
     model.load_state_dict(checkpoint['model'])
     model.eval()
@@ -363,7 +363,7 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, speech_pat
 
     if speech_path is not None:
         mfcc, fs = librosa.load(speech_path, sr=16000)
-        print("Audio length: ", len(mfcc)/16000)
+        print("Audio length: ", len(mfcc) / 16000)
 
     elif audio_path is not None and mfcc_path is None:
         # normalize_audio

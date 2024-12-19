@@ -68,10 +68,15 @@ class DeepGestureDataset(Dataset):
 
     def __getitem__(self, index):
         with h5py.File(self.h5_dataset_file, 'r') as h5:
-            gesture = h5[self.dataset_keys[index]]["gesture"][:]
-            emotion = h5[self.dataset_keys[index]]["emotion"][:]
-            speech = h5[self.dataset_keys[index]]["speech"][:]
-            text = h5[self.dataset_keys[index]]["text"][:]
+            data = h5[self.dataset_keys[index]]
+            # gesture = h5[self.dataset_keys[index]]["gesture"][:]
+            # emotion = h5[self.dataset_keys[index]]["emotion"][:]
+            # speech = h5[self.dataset_keys[index]]["speech"][:]
+            # text = h5[self.dataset_keys[index]]["text"][:]
+            gesture = data["gesture"][:]
+            emotion = data["emotion"][:]
+            speech = data["speech"][:]
+            text = data["text"][:]
 
             return gesture, emotion, speech, text
 
