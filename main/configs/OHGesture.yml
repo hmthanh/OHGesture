@@ -24,8 +24,8 @@ subdivision_stride: 10      # 10 -> 200
 batch_size: 640       # 384 -> 32
 
 # --------- FEATURE ---------
-loader_workers: 2
-epochs: 500 # 500     # 500 -> 10
+loader_workers: 0
+epochs: 500000 # 500     # 500 -> 10
 save_per_epochs: 25     # 20 -> 1
 
 

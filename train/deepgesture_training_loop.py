@@ -222,7 +222,7 @@ class DeepGestureTrainLoop:
                 #
                 #     pose2bvh(out_poses, os.path.join(save_path, prefix + '.bvh'), length=self.args.n_poses)
 
-                if self.step % 50000 == 0:
+                if self.step % 10000 == 0:
                     self.save()
                     # self.model.eval()
                     # self.evaluate()
