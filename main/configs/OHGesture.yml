@@ -39,6 +39,8 @@ save_dir: "./output/checkpoint/ohgesture"
 audio_feat: "wavlm"     # wav encoder; mfcc; wavlm
 text_feat: "word2vec"  # word2vec | sentence_embedding
 
+model_finetune_path: "./model000450000.pt"
+
 lr: 0.00003     # 0.00003 ->
 betas: [0.5, 0.999]
 milestones: [100, 200]

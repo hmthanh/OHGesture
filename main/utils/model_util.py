@@ -10,6 +10,7 @@ def load_model_wo_clip(model, state_dict):
     print(missing_keys, unexpected_keys)
     assert len(unexpected_keys) == 0
     assert all([k.startswith('clip_model.') for k in missing_keys])
+    return model
 
 
 def create_model_and_diffusion(args, data):
