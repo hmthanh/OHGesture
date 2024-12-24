@@ -1,0 +1,105 @@
+sequence_pos_encoder = PositionalEncoding(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+seqTransEncoder = TransformerEncoder(
+  (layers): ModuleList(
+    (0-7): 8 x TransformerEncoderLayer(
+      (self_attn): MultiheadAttention(
+   ...ntwise_affine=True)
+      (dropout1): Dropout(p=0.1, inplace=False)
+      (dropout2): Dropout(p=0.1, inplace=False)
+    )
+  )
+)
+
+
+rel_pos = SinusoidalEmbeddings()
+
+output_process = OutputProcess(
+  (poseFinal): Linear(in_features=256, out_features=1141, bias=True)
+)
+
+input_process2 = Linear(in_features=576, out_features=256, bias=True)
+
+input_process = InputProcess(
+  (poseEmbedding): Linear(in_features=1141, out_features=256, bias=True)
+)
+
+
+embed_timestep = TimestepEmbedder(
+  (sequence_pos_encoder): PositionalEncoding(
+    (dropout): Dropout(p=0.1, inplace=False)
+  )
+  (time_embed..._features=256, out_features=256, bias=True)
+    (1): SiLU()
+    (2): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+embed_text = Linear(in_features=9128, out_features=192, bias=True)
+
+embed_style = Linear(in_features=6, out_features=64, bias=True)
+
+cross_local_attention = LocalAttention(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+WavEncoder = WavEncoder(
+  (audio_feature_map): Linear(in_features=1024, out_features=64, bias=True)
+)
+
+########################################################################################################
+
+cross_local_attention = LocalAttention(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+embed_timestep = TimestepEmbedder(
+  (sequence_pos_encoder): PositionalEncoding(
+    (dropout): Dropout(p=0.1, inplace=False)
+  )
+  (time_embed..._features=256, out_features=256, bias=True)
+    (1): SiLU()
+    (2): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+input_process = InputProcess(
+  (poseEmbedding): Linear(in_features=1141, out_features=256, bias=True)
+)
+
+input_process2 = Linear(in_features=576, out_features=256, bias=True)
+
+output_process = OutputProcess(
+  (poseFinal): Linear(in_features=256, out_features=1141, bias=True)
+)
+
+rel_pos = SinusoidalEmbeddings()
+
+seed_gesture_linear = Linear(in_features=9128, out_features=192, bias=True)
+
+seqTransEncoder = TransformerEncoder(
+  (layers): ModuleList(
+    (0-7): 8 x TransformerEncoderLayer(
+      (self_attn): MultiheadAttention(
+   ...ntwise_affine=True)
+      (dropout1): Dropout(p=0.1, inplace=False)
+      (dropout2): Dropout(p=0.1, inplace=False)
+    )
+  )
+)
+
+sequence_pos_encoder = PositionalEncoding(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+speech_linear_encoder = WavEncoder(
+  (audio_feature_map): Linear(in_features=1024, out_features=64, bias=True)
+)
+
+style_linear_encoder = Linear(in_features=6, out_features=64, bias=True)
+
+text_linear_encoder = TextEncoder(
+  (text_feature_map): Linear(in_features=300, out_features=64, bias=True)
+)
