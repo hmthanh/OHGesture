@@ -1,0 +1,350 @@
+sequence_pos_encoder = PositionalEncoding(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+seqTransEncoder = TransformerEncoder(
+  (layers): ModuleList(
+    (0-7): 8 x TransformerEncoderLayer(
+      (self_attn): MultiheadAttention(
+   ...ntwise_affine=True)
+      (dropout1): Dropout(p=0.1, inplace=False)
+      (dropout2): Dropout(p=0.1, inplace=False)
+    )
+  )
+)
+
+
+rel_pos = SinusoidalEmbeddings()
+
+output_process = OutputProcess(
+  (poseFinal): Linear(in_features=256, out_features=1141, bias=True)
+)
+
+input_process2 = Linear(in_features=576, out_features=256, bias=True)
+
+input_process = InputProcess(
+  (poseEmbedding): Linear(in_features=1141, out_features=256, bias=True)
+)
+
+
+embed_timestep = TimestepEmbedder(
+  (sequence_pos_encoder): PositionalEncoding(
+    (dropout): Dropout(p=0.1, inplace=False)
+  )
+  (time_embed..._features=256, out_features=256, bias=True)
+    (1): SiLU()
+    (2): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+embed_text = Linear(in_features=9128, out_features=192, bias=True)
+
+embed_style = Linear(in_features=6, out_features=64, bias=True)
+
+cross_local_attention = LocalAttention(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+WavEncoder = WavEncoder(
+  (audio_feature_map): Linear(in_features=1024, out_features=64, bias=True)
+)
+
+########################################################################################################
+
+cross_local_attention = LocalAttention(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+embed_timestep = TimestepEmbedder(
+  (sequence_pos_encoder): PositionalEncoding(
+    (dropout): Dropout(p=0.1, inplace=False)
+  )
+  (time_embed..._features=256, out_features=256, bias=True)
+    (1): SiLU()
+    (2): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+input_process = InputProcess(
+  (poseEmbedding): Linear(in_features=1141, out_features=256, bias=True)
+)
+
+input_process2 = Linear(in_features=576, out_features=256, bias=True)
+
+output_process = OutputProcess(
+  (poseFinal): Linear(in_features=256, out_features=1141, bias=True)
+)
+
+rel_pos = SinusoidalEmbeddings()
+
+seed_gesture_linear = Linear(in_features=9128, out_features=192, bias=True)
+
+seqTransEncoder = TransformerEncoder(
+  (layers): ModuleList(
+    (0-7): 8 x TransformerEncoderLayer(
+      (self_attn): MultiheadAttention(
+   ...ntwise_affine=True)
+      (dropout1): Dropout(p=0.1, inplace=False)
+      (dropout2): Dropout(p=0.1, inplace=False)
+    )
+  )
+)
+
+sequence_pos_encoder = PositionalEncoding(
+  (dropout): Dropout(p=0.1, inplace=False)
+)
+
+speech_linear_encoder = WavEncoder(
+  (audio_feature_map): Linear(in_features=1024, out_features=64, bias=True)
+)
+
+style_linear_encoder = Linear(in_features=6, out_features=64, bias=True)
+
+text_linear_encoder = TextEncoder(
+  (text_feature_map): Linear(in_features=300, out_features=64, bias=True)
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########################################################################################################
+
+
+
+
+self.speech_linear_encoder = WavEncoder()
+self.text_feat = text_feat
+self.text_feat_dim = 64  # Linear 1024 -> 64
+self.text_linear_encoder = TextEncoder()
+self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout)
+self.emb_trans_dec = emb_trans_dec
+self.cond_mode = cond_mode
+self.num_head = 8
+if 'style2' not in self.cond_mode:
+self.input_process = InputProcess(self.data_rep, self.input_feats + self.audio_feat_dim + self.gru_emb_dim, self.latent_dim)
+if self.arch == 'mytrans_enc':
+self.embed_positions = RoFormerSinusoidalPositionalEmbedding(1536, self.latent_dim)
+sequence_trans_encoder_layer = TransformerEncoderLayer(d_model=self.latent_dim,
+nhead=self.num_heads,
+dim_feedforward=self.ff_size,
+dropout=self.dropout,
+activation=self.activation)
+self.seqTransEncoder = TransformerEncoder(sequence_trans_encoder_layer, num_layers=self.num_layers)
+elif self.arch == 'trans_enc':
+sequence_trans_encoder_layer = nn.TransformerEncoderLayer(d_model=self.latent_dim,
+nhead=self.num_heads,
+dim_feedforward=self.ff_size,
+dropout=self.dropout,
+activation=self.activation, batch_first=True)
+self.seqTransEncoder = nn.TransformerEncoder(sequence_trans_encoder_layer, num_layers=self.num_layers)
+elif self.arch == 'trans_dec':
+sequence_trans_decoder_layer = nn.TransformerDecoderLayer(d_model=self.latent_dim,
+nhead=self.num_heads,
+dim_feedforward=self.ff_size,
+dropout=self.dropout,
+self.seqTransDecoder = nn.TransformerDecoder(sequence_trans_decoder_layer, num_layers=self.num_layers)
+elif self.arch == 'gru':
+self.gru = nn.GRU(self.latent_dim, self.latent_dim, num_layers=self.num_layers, batch_first=False)
+self.embed_timestep = TimestepEmbedder(self.latent_dim, self.sequence_pos_encoder)
+self.n_seed = n_seed
+if 'style1' in self.cond_mode:
+if self.n_seed != 0:
+self.style_dim = 64
+self.style_linear_encoder = nn.Linear(6, self.style_dim)
+self.seed_gesture_linear = nn.Linear(self.njoints * n_seed, self.latent_dim - self.style_dim)
+self.style_dim = self.latent_dim
+self.style_linear_encoder = nn.Linear(6, self.style_dim)
+elif 'style2' in self.cond_mode:
+self.style_dim = 64
+self.style_linear_encoder = nn.Linear(6, self.style_dim)
+self.input_process = InputProcess(self.data_rep, self.input_feats + self.audio_feat_dim + self.gru_emb_dim + self.style_dim,
+self.latent_dim)
+if self.n_seed != 0:
+self.seed_gesture_linear = nn.Linear(self.njoints * n_seed, self.latent_dim)
+elif self.n_seed != 0:
+self.seed_gesture_linear = nn.Linear(self.njoints * n_seed, self.latent_dim)
+self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
+self.nfeats)
+if 'cross_local_attention' in self.cond_mode:
+self.rel_pos = SinusoidalEmbeddings(self.latent_dim // self.num_head)
+self.input_process = InputProcess(self.data_rep, self.input_feats + self.gru_emb_dim, self.latent_dim)
+self.cross_local_attention = LocalAttention(
+self.input_process2 = nn.Linear(self.latent_dim * 2 + self.audio_feat_dim, self.latent_dim)
+if 'cross_local_attention2' in self.cond_mode:
+self.selfAttention = LinearTemporalCrossAttention(seq_len=0, latent_dim=256, text_latent_dim=256, num_head=8, dropout=0.1, time_embed_dim=0)
+if 'cross_local_attention3' in self.cond_mode:
+if 'cross_local_attention4' in self.cond_mode:
+return [p for name, p in self.named_parameters() if not name.startswith('clip_model.')]
+elif self.training and self.cond_mask_prob > 0.:
+mask = torch.bernoulli(torch.ones(bs, device=cond.device) * self.cond_mask_prob).view(bs, 1)  # 1-> use null_cond, 0-> use real cond
+latent_timestep = self.embed_timestep(timesteps)  # [1, batch_size, d], (1, 2, 256)
+if 'style1' in self.cond_mode:
+embed_style = self.mask_cond(self.style_linear_encoder(y['style']), force_mask=force_mask)  # (batch_size, 64)
+if self.n_seed != 0:
+latent_seed_gesture = self.seed_gesture_linear(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # (batch_size, 256-64)
+elif self.n_seed != 0:
+emb_1 = self.seed_gesture_linear(self.mask_cond(y['seed'].squeeze(2).reshape(bs, -1), force_mask=force_mask))  # z_tk
+if self.text_feat == "word2vec":
+word_embedding = self.text_linear_encoder(y['text']).permute(1, 0, 2)
+if self.audio_feat == 'wavlm':
+enc_audio = (self.speech_linear_encoder(y['audio'])).permute(1, 0, 2)
+if 'cross_local_attention' in self.cond_mode:
+if 'cross_local_attention3' in self.cond_mode:
+x_ = self.input_process(x)  # [batch_size, 135, 1, 240] -> [240, batch_size, 256]
+packed_shape = [torch.Size([bs, self.num_head])]
+xseq = self.input_process2(xseq)
+xseq = xseq.view(bs, nframes, self.num_head, -1)
+xseq = xseq.reshape(bs * self.num_head, nframes, -1)
+pos_emb = self.rel_pos(xseq)  # (89, 32)
+xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape,
+xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
+xseq = xseq.reshape(bs * self.num_head, nframes + 1, -1)
+pos_emb = self.rel_pos(xseq)  # (89, 32)
+xseq_rpe = xseq.reshape(bs, self.num_head, nframes + 1, -1)
+if 'cross_local_attention2' in self.cond_mode:
+xseq = (self.selfAttention(xseq).permute(1, 0, 2))[1:]
+output = self.seqTransEncoder(xseq)[1:]
+elif 'cross_local_attention5' in self.cond_mode:
+x_ = self.input_process(x)  # [batch_size, 135, 1, n_frame] -> [n_frame, batch_size, 256]
+packed_shape = [torch.Size([bs, self.num_head])]
+xseq = self.input_process2(xseq)
+xseq = xseq.view(bs, nframes, self.num_head, -1)
+xseq = xseq.reshape(bs * self.num_head, nframes, -1)
+pos_emb = self.rel_pos(xseq)  # (89, 32)
+xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape,
+x_ = self.input_process(x)  # [batch_size, 135, 1, 240] -> [240, 2, 256]
+xseq = xseq.view(bs, nframes + 1, self.num_head, -1)
+xseq = xseq.reshape(bs * self.num_head, nframes + 1, -1)
+pos_emb = self.rel_pos(xseq)  # (89, 32)
+xseq_rpe = xseq.reshape(bs, self.num_head, nframes + 1, -1)
+if 'cross_local_attention2' in self.cond_mode:
+xseq = (self.selfAttention(xseq).permute(1, 0, 2))[1:]
+xseq = self.seqTransEncoder(xseq)[1:]
+packed_shape = [torch.Size([bs, self.num_head])]
+xseq = self.input_process2(xseq)
+xseq = xseq.view(bs, nframes, self.num_head, -1)
+xseq = xseq.reshape(bs * self.num_head, nframes, -1)
+pos_emb = self.rel_pos(xseq)  # (89, 32)
+xseq = self.cross_local_attention(xseq, xseq, xseq, packed_shape=packed_shape, mask=y['mask_local'])  # (batch_size, 8, 2048, 64)
+if self.arch == 'trans_enc' or self.arch == 'trans_dec' or self.arch == 'conformers_enc' or self.arch == 'mytrans_enc':
+enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
+if 'style2' in self.cond_mode:
+embed_style = self.mask_cond(self.style_linear_encoder(y['style']), force_mask=force_mask).repeat(nframes, 1, 1)  # (#frames, batch_size, 64)
+if self.arch == 'gru':
+enc_text_gru = enc_text_gru.reshape(bs, self.audio_feat_dim, 1, nframes)
+emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  # [batch_size, d, 1, #frames]
+x = self.input_process(x)  # [2, 135, 1, 240] -> [240, 2, 224]
+if self.arch == 'trans_enc':
+xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, batch_size, d]
+output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, batch_size, d]      # -> (n_frame, 2, 256)
+elif self.arch == 'trans_dec':
+if self.emb_trans_dec:
+xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, batch_size, d]
+if self.emb_trans_dec:
+output = self.seqTransDecoder(tgt=xseq, memory=enc_text)[1:]  # [seqlen, batch_size, d] # FIXME - maybe add a causal mask
+output = self.seqTransDecoder(tgt=xseq, memory=enc_text)
+elif self.arch == 'gru':
+xseq = self.sequence_pos_encoder(xseq)  # [seqlen, batch_size, d]
+output, _ = self.gru(xseq)
+elif self.arch == 'mytrans_enc':
+sinusoidal_pos = self.embed_positions(xseq.shape[0], 0)[None, None, :, :].chunk(2, dim=-1)
+xseq = self.apply_rotary(xseq.permute(1, 0, 2), sinusoidal_pos).squeeze(0).permute(1, 0, 2)
+output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, batch_size, d]      # -> (240, 2, 256)
+output = self.output_process(output)  # [batch_size, njoints, nfeats, nframes]
+self.dropout = nn.Dropout(p=dropout)
+self.register_buffer('pe', pe)
+x = x + self.pe[:x.shape[0], :]
+return self.dropout(x)
+self.weight = self._init_weight(self.weight)
+device=self.weight.device,
+self.latent_dim = latent_dim
+self.sequence_pos_encoder = sequence_pos_encoder
+time_embed_dim = self.latent_dim
+self.time_embed = nn.Sequential(
+nn.Linear(self.latent_dim, time_embed_dim),
+return self.time_embed(self.sequence_pos_encoder.pe[timesteps]).permute(1, 0, 2)
+self.data_rep = data_rep
+self.input_feats = input_feats
+self.latent_dim = latent_dim
+self.poseEmbedding = nn.Linear(self.input_feats, self.latent_dim)
+if self.data_rep == 'rot_vel':
+self.velEmbedding = nn.Linear(self.input_feats, self.latent_dim)
+if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
+x = self.poseEmbedding(x)  # [seqlen, batch_size, d]
+elif self.data_rep == 'rot_vel':
+first_pose = self.poseEmbedding(first_pose)  # [1, batch_size, d]
+vel = self.velEmbedding(vel)  # [seqlen-1, batch_size, d]
+self.data_rep = data_rep
+self.input_feats = input_feats
+self.latent_dim = latent_dim
+self.njoints = njoints
+self.nfeats = nfeats
+self.poseFinal = nn.Linear(self.latent_dim, self.input_feats)
+if self.data_rep == 'rot_vel':
+self.velFinal = nn.Linear(self.latent_dim, self.input_feats)
+if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
+output = self.poseFinal(output)  # [seqlen, batch_size, 150]
+elif self.data_rep == 'rot_vel':
+first_pose = self.poseFinal(first_pose)  # [1, batch_size, 150]
+vel = self.velFinal(vel)  # [seqlen-1, batch_size, 150]
+output = output.reshape(nframes, bs, self.njoints, self.nfeats)
+self.num_head = num_head
+self.norm = nn.LayerNorm(latent_dim)
+self.text_norm = nn.LayerNorm(text_latent_dim)
+self.query = nn.Linear(latent_dim, latent_dim)
+self.key = nn.Linear(text_latent_dim, latent_dim)
+self.value = nn.Linear(text_latent_dim, latent_dim)
+self.dropout = nn.Dropout(dropout)
+self.proj_out = nn.Linear(latent_dim, latent_dim)
+H = self.num_head
+query = self.query(self.norm(x))
+key = self.key(self.text_norm(x))
+value = self.value(self.text_norm(x)).view(B, T, H, -1)
+# y = x + self.proj_out(y, emb)
+self.audio_feature_map = nn.Linear(1024, 64)
+wav_feature = self.audio_feature_map(wav_feature)
+self.text_feature_map = nn.Linear(300, 64)
+text_feat = self.text_feature_map(text_feat)
+
+
+
+########################################################################################################
+
+
+sequence_pos_encoder
+seqTransEncoder
+rel_pos
+output_process
+input_process2
+input_process
+embed_timestep
+embed_text
+embed_style
+cross_local_attention
+WavEncoder
+
+
+cross_local_attention
+embed_timestep
+input_process
+input_process2
+output_process
+rel_pos
+seed_gesture_linear
+seqTransEncoder
+sequence_pos_encoder
+speech_linear_encoder
+style_linear_encoder
+text_linear_encoder
