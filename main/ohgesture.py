@@ -16,8 +16,20 @@ from data_loader.deepgesture_dataset import DeepGestureDataset, custom_collate
 from utils.model_util import create_gaussian_diffusion
 from deepgesture_training_loop import DeepGestureTrainLoop
 from model.deepgesture import DeepGesture
+from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 
 logging.getLogger().setLevel(logging.INFO)
+
+
+def load_pretrained_model(model, checkpoint_path):
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+
+    state_dict = torch.load(checkpoint_path, map_location='cpu')
+    load_model_wo_clip(model, state_dict)
+
+    logging.info(f"Pretrained model loaded from {checkpoint_path}")
+    return model
 
 
 def create_model_and_diffusion(args):
@@ -57,6 +69,9 @@ def main(args, device):
         os.mkdir(args.save_dir)
 
     model, diffusion = create_model_and_diffusion(args)
+
+    if args.pretrained_model_path:
+        model = load_pretrained_model(model, args.pretrained_model_path)
 
     model.to(device)
     train_loop = DeepGestureTrainLoop(args, model, diffusion, device, data=train_loader)
