@@ -18,6 +18,8 @@ from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 from mfcc import MFCC
 from ZEGGS.process_zeggs_bvh import pose2bvh, quat  # '../process'
 from model.mdm import MDM
+# from WavLM import WavLM, WavLMConfig
+from wavlm.wavlm_embedding import WavLM, WavLMConfig
 
 style2onehot = {
     'Happy': [1, 0, 0, 0, 0, 0],
@@ -30,9 +32,6 @@ style2onehot = {
 
 
 def wavlm_init(device=torch.device('cuda:0')):
-    import sys
-    [sys.path.append(i) for i in ['./WavLM']]
-    from WavLM import WavLM, WavLMConfig
     wavlm_model_path = './WavLM/WavLM-Large.pt'
     checkpoint = torch.load(wavlm_model_path, map_location=torch.device('cpu'), weights_only=True)  # load the pre-trained checkpoints
     cfg = WavLMConfig(checkpoint['cfg'])
